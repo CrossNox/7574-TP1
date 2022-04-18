@@ -344,10 +344,22 @@ category = "dev"
 optional = false
 python-versions = "*"
 
+[[package]]
+name = "youconfigme"
+version = "0.6.14"
+description = "YouConfigMe helps you manage config in a pythonic way"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+dev = ["pre-commit", "mypy", "flake8", "isort", "black", "pylint", "bump", "nox"]
+test = ["pytest"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "92e6b3b561444915f07efdbbf2f31468e82543a786afc87ca0203beec5532d7f"
+content-hash = "ac65d6697fd066a5f574e82df1b006ac4618ba70c1a1be845997dd6ad1b9e035"
 
 [metadata.files]
 atomicwrites = [
@@ -529,4 +541,8 @@ virtualenv = [
 wcwidth = [
     {file = "wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784"},
     {file = "wcwidth-0.2.5.tar.gz", hash = "sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83"},
+]
+youconfigme = [
+    {file = "youconfigme-0.6.14-py3-none-any.whl", hash = "sha256:6f7183e6fc0db80d081c731aa53af05f1f5e0abfe48085e9042cc9d8ec3e3ef2"},
+    {file = "youconfigme-0.6.14.tar.gz", hash = "sha256:9a46819db3c76f0400c99f35218a7a3647ede56867aa00a746aba30a2442f344"},
 ]
