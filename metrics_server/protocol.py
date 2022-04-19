@@ -1,7 +1,6 @@
 import abc
-import struct
 from enum import Enum
-
+import struct
 
 class Status(Enum):
     ok = 1
@@ -66,7 +65,7 @@ class MetricResponse:
     @classmethod
     def from_bytes(cls, buffer):
         (status,) = struct.unpack(MetricResponse.fmt, buffer)
-        return MetricResponse(status)
+        return MetricResponse(Status(status))
 
     def __str__(self):
         return f"metric response: {self.msg}"

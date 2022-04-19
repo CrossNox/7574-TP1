@@ -4,7 +4,6 @@ import logging
 
 import typer
 
-
 class TyperLoggerHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         fg = None
@@ -24,16 +23,16 @@ class TyperLoggerHandler(logging.Handler):
         typer.secho(self.format(record), bg=bg, fg=fg)
 
 
-def get_logger(name: str):
+def get_logger(name: str, level=logging.INFO):
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
 
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
     typer_handler = TyperLoggerHandler()
-    typer_handler.setLevel(logging.INFO)
+    typer_handler.setLevel(level)
     typer_handler.setFormatter(formatter)
     logger.addHandler(typer_handler)
 
