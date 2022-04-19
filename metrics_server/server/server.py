@@ -1,29 +1,35 @@
+import multiprocessing
 import signal
 import socket
 import struct
-import multiprocessing
 
-from metrics_server.utils import get_logger
 from metrics_server.protocol import Metric, Status, MetricResponse
+from metrics_server.utils import get_logger
 
 logger = get_logger(__name__)
 
 BUFSIZE = 1024
 
 
-def handle_receive_metric(sock, addr):
+def handle_conn(sock, addr):
     # TODO: save to file
     try:
-        buffer = sock.recv(struct.calcsize(Metric.fmt))
-        thing = Metric.from_bytes(buffer)
-        logger.info("received: %s from %s", thing, addr)
-        metric_response = MetricResponse(Status.ok)
-        sock.sendall(metric_response.to_bytes())
+        while True:
+            buffer = sock.recv(struct.calcsize(Metric.fmt))
+            if buffer == b"":
+                break
+            thing = Metric.from_bytes(buffer)
+            logger.info("received: %s from %s", thing, addr)
+            metric_response = MetricResponse(Status.ok)
+            sock.sendall(metric_response.to_bytes())
     except ConnectionResetError:
         logger.info("Client closed connection before I could respond")
     except OSError:
         logger.info("Error while reading socket")
+    except KeyboardInterrupt:
+        logger.info("Got keyboard interrupt, exiting")
     finally:
+        logger.info("Exiting")
         sock.close()
 
 
@@ -76,7 +82,7 @@ class Server:
             while not self._signaled_termination:
                 client_sock, client_addr = self._accept_new_connection()
                 _ = self.runners.apply_async(
-                    handle_receive_metric, args=(client_sock, client_addr)
+                    handle_conn, args=(client_sock, client_addr)
                 )
                 # TODO: keep the AsyncResult and get the inner result
                 # https://docs.python.org/3.9/library/multiprocessing.html#multiprocessing.pool.AsyncResult

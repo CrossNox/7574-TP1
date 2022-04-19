@@ -1,12 +1,11 @@
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 import typer
 
-from metrics_server.utils import get_logger
 from metrics_server.client.client import Client
-from metrics_server.constants import Aggregation
-from metrics_server.protocol import Metric, MetricResponse
+from metrics_server.constants import Ramp, Aggregation
+from metrics_server.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -14,18 +13,23 @@ app = typer.Typer()
 
 
 @app.command()
-def send(metric: str, value: int, host: str = "localhost", port: int = 5678):
-    logger.info("Sending metric")
-    client = Client(host, port)
-    client.send(Metric(metric, value).to_bytes())
+def ramp(
+    strategy: Ramp,
+    metric: str,
+    during: int,
+    initial: int,
+    final: int,
+    host: str = "localhost",
+    port: int = 5678,
+):
+    Client(host, port).ramp_metric(strategy, metric, during, initial, final)
 
-    logger.info("Metric sent, awaiting response")
-    status = client.receive(MetricResponse)
 
-    if status.error:
-        logger.error("Got error: %s", status.msg)
-    else:
-        logger.info("Message received correctly!")
+@app.command()
+def send(
+    metric: str, value: int, host: str = "localhost", port: int = 5678,
+):
+    Client(host, port).send_metric(metric, value)
 
 
 @app.command()
