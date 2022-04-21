@@ -6,3 +6,9 @@ class Aggregation(Enum):
     MIN = "min"
     MAX = "max"
     COUNT = "cnt"
+
+
+class Ramp(Enum):
+    constant = "constant"
+    linear = "linear"
+    exponential = "exponential"

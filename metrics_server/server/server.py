@@ -14,25 +14,34 @@ logger = get_logger(__name__)
 BUFSIZE = 1024
 
 
-def handle_receive_metric(sock, addr, metrics_queues):
+def handle_conn(sock, addr, metrics_queues):
+    # TODO: save to file
     try:
-        # Receive metric
-        buffer = sock.recv(struct.calcsize(Metric.fmt))
-        thing = Metric.from_bytes(buffer)
-        logger.info("received: %s from %s", thing, addr)
+        while True:
+            # Receive metric
+            buffer = sock.recv(struct.calcsize(Metric.fmt))
+            if buffer == b"":
+                break
 
-        # Reply an ack
-        metric_response = MetricResponse(Status.ok)
-        sock.sendall(metric_response.to_bytes())
+            thing = Metric.from_bytes(buffer)
+            logger.info("received: %s from %s", thing, addr)
 
-        # Send to queues for processing
-        shard = zlib.crc32(thing.identifier.encode()) % len(metrics_queues)
-        metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
+            # Reply an ack
+            metric_response = MetricResponse(Status.ok)
+            sock.sendall(metric_response.to_bytes())
+
+            # Send to queues for processing
+            shard = zlib.crc32(thing.identifier.encode()) % len(metrics_queues)
+            metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
+
     except ConnectionResetError:
         logger.info("Client closed connection before I could respond")
     except OSError:
         logger.info("Error while reading socket")
+    except KeyboardInterrupt:
+        logger.info("Got keyboard interrupt, exiting")
     finally:
+        logger.info("Exiting")
         sock.close()
 
 
@@ -116,7 +125,7 @@ class Server:
             while not self._signaled_termination:
                 client_sock, client_addr = self._accept_new_connection()
                 _ = self.runners.apply_async(
-                    handle_receive_metric,
+                    handle_conn,
                     args=(client_sock, client_addr, self.metrics_queues),
                 )
                 # TODO: keep the AsyncResult and get the inner result
