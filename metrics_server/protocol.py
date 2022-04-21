@@ -1,6 +1,9 @@
 import abc
-from enum import Enum
+import time
 import struct
+from enum import Enum
+from typing import Optional
+
 
 class Status(Enum):
     ok = 1
@@ -21,8 +24,8 @@ class ProtocolMessage(abc.ABC):
         raise NotImplementedError()
 
 
-class Metric:
-    fmt = "!28sL"
+class Metric(ProtocolMessage):
+    fmt = "!28pL"
 
     def __init__(self, identifier: str, value: int):
         self.identifier = identifier
@@ -40,7 +43,36 @@ class Metric:
         return f"metric: {self.identifier} -> {self.value}"
 
 
-class MetricResponse:
+class ReceivedMetric(ProtocolMessage):
+    fmt = "!28pLf"
+
+    def __init__(self, identifier: str, value: int, ts: Optional[int] = None):
+        self.identifier = identifier
+        self.value = value
+        if ts is None:
+            self.timestamp = time.time()
+        else:
+            self.timestamp = ts
+
+    def to_bytes(self):
+        return struct.pack(
+            ReceivedMetric.fmt, self.identifier.encode(), self.value, self.timestamp
+        )
+
+    @classmethod
+    def from_bytes(cls, buffer):
+        identifier, value, ts = struct.unpack(ReceivedMetric.fmt, buffer)
+        return ReceivedMetric(identifier.decode(), value, ts)
+
+    def __str__(self):
+        return f"received metric: {self.identifier} -> {self.value} @ {self.timestamp}"
+
+    @classmethod
+    def from_metric(cls, metric):
+        return ReceivedMetric(metric.identifier, metric.value)
+
+
+class MetricResponse(ProtocolMessage):
     fmt = "!H"
     msgs = {
         Status.ok: "Ok!",

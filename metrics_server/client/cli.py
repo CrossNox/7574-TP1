@@ -1,11 +1,11 @@
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
 
 import typer
 
+from metrics_server.utils import get_logger
 from metrics_server.client.client import Client
 from metrics_server.constants import Ramp, Aggregation
-from metrics_server.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -27,7 +27,10 @@ def ramp(
 
 @app.command()
 def send(
-    metric: str, value: int, host: str = "localhost", port: int = 5678,
+    metric: str,
+    value: int,
+    host: str = "localhost",
+    port: int = 5678,
 ):
     Client(host, port).send_metric(metric, value)
 

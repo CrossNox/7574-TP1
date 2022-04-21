@@ -4,6 +4,7 @@ import logging
 
 import typer
 
+
 class TyperLoggerHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         fg = None

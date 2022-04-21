@@ -1,14 +1,15 @@
-from collections import defaultdict
-import logging
+import time
 import socket
 import struct
-import time
+import logging
+from typing import DefaultDict
+from collections import defaultdict
 
 import numpy as np
 
 from metrics_server.constants import Ramp
-from metrics_server.protocol import Metric, Status, MetricResponse
 from metrics_server.utils import get_logger
+from metrics_server.protocol import Metric, Status, MetricResponse
 
 logger = get_logger(__name__, logging.DEBUG)
 
@@ -54,7 +55,7 @@ class Client:
         else:
             msgs_rate = np.repeat(initial, during).astype(int)
 
-        aggs = defaultdict(lambda: 0)
+        aggs: DefaultDict[Status, int] = defaultdict(lambda: 0)
         times = []
 
         i = 1
