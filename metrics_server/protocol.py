@@ -25,7 +25,7 @@ class ProtocolMessage(abc.ABC):
 
 
 class Metric(ProtocolMessage):
-    fmt = "!28sL"
+    fmt = "!28pL"
 
     def __init__(self, identifier: str, value: int):
         self.identifier = identifier
@@ -44,7 +44,7 @@ class Metric(ProtocolMessage):
 
 
 class ReceivedMetric(ProtocolMessage):
-    fmt = "!28sLf"
+    fmt = "!28pLf"
 
     def __init__(self, identifier: str, value: int, ts: Optional[int] = None):
         self.identifier = identifier
