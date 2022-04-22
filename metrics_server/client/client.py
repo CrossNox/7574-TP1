@@ -127,3 +127,5 @@ class Client:
         logger.info("Max %s", np.max(times))
         logger.info("P50 %s", np.percentile(times, 50))
         logger.info("P90 %s", np.percentile(times, 90))
+        logger.info("P95 %s", np.percentile(times, 95))
+        logger.info("P99 %s", np.percentile(times, 99))
