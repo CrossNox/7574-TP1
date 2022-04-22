@@ -166,6 +166,9 @@ def agg_metrics(
 
         dfs.append(df)
 
+    if len(dfs) == 0:
+        return []
+
     df = pd.concat(dfs)
     df.sort_values("ts", inplace=True, ascending=True)
 
