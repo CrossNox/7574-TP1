@@ -271,10 +271,20 @@ class Server:
     def _handle_sigterm(self, *_args):
         logger.debug("Got SIGTERM, exiting gracefully")
         logger.debug("Force stopping all children threads")
-        for runner in self.metrics_getters:
-            runner.terminate()
+
+        self.connections_queue.close()
+        self.metrics_conns_queue.close()
+        self.queries_conns_queue.close()
+        for q in self.metrics_queues:
+            q.close()
+
+        self.conn_dispatcher.join()
         for writer in self.writers:
-            writer.terminate()
+            writer.join()
+        for runner in self.metrics_getters:
+            runner.join()
+        for calculator in self.queries_calculators:
+            calculator.join()
 
         self._signaled_termination = True
         self._server_socket.close()
