@@ -1,8 +1,6 @@
 """Utils file."""
 
 import logging
-from typing import Generator
-from datetime import datetime, timedelta
 
 import typer
 
@@ -40,14 +38,6 @@ def get_logger(name: str, level=logging.INFO):
     logger.addHandler(typer_handler)
 
     return logger
-
-
-def minute_range(
-    start_date: datetime, end_date: datetime
-) -> Generator[datetime, None, None]:
-    while start_date <= end_date:
-        yield start_date
-        start_date += timedelta(minutes=1)
 
 
 def minute_partition(ts: int) -> int:
