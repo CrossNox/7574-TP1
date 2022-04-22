@@ -5,7 +5,7 @@ import typer
 
 from metrics_server.utils import get_logger
 from metrics_server.client.client import Client
-from metrics_server.constants import Ramp, Aggregation
+from metrics_server.constants import DEFAULT_HOST, DEFAULT_PORT, Ramp, Aggregation
 
 logger = get_logger(__name__)
 
@@ -19,8 +19,8 @@ def ramp(
     during: int,
     initial: int,
     final: int,
-    host: str = "localhost",
-    port: int = 5678,
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
 ):
     Client(host, port).ramp_metric(strategy, metric, during, initial, final)
 
@@ -29,8 +29,8 @@ def ramp(
 def send(
     metric: str,
     value: int,
-    host: str = "localhost",
-    port: int = 5678,
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
 ):
     Client(host, port).send_metric(metric, value)
 

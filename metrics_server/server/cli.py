@@ -1,15 +1,39 @@
+import pathlib
+
 import typer
 
 from metrics_server.utils import get_logger
 from metrics_server.server.server import Server
+from metrics_server.constants import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_BACKLOG,
+    DEFAULT_WORKERS,
+    DEFAULT_WRITERS,
+    DEFAULT_DATA_PATH,
+)
 
 logger = get_logger(__name__)
 app = typer.Typer()
 
 
 @app.command()
-def main(host: str = "localhost", port: int = 5678, workers: int = 16):
-    server = Server(host, port, workers)
+def main(
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
+    workers: int = DEFAULT_WORKERS,
+    backlog: int = DEFAULT_BACKLOG,
+    writers: int = DEFAULT_WRITERS,
+    data_path: pathlib.Path = DEFAULT_DATA_PATH,
+):
+    server = Server(
+        host=host,
+        port=port,
+        workers=workers,
+        backlog=backlog,
+        writers=writers,
+        data_path=data_path,
+    )
     server.run()
 
 

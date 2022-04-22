@@ -9,6 +9,14 @@ from typing import List
 
 from metrics_server.utils import get_logger
 from metrics_server.protocol import Metric, Status, MetricResponse, ReceivedMetric
+from metrics_server.constants import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_BACKLOG,
+    DEFAULT_WORKERS,
+    DEFAULT_WRITERS,
+    DEFAULT_DATA_PATH,
+)
 
 logger = get_logger(__name__)
 
@@ -71,12 +79,12 @@ def write_metrics(data_path: pathlib.Path, metrics_queue: multiprocessing.Queue)
 class Server:
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 5678,
-        workers: int = 16,
-        backlog: int = 10,
-        writers: int = 8,
-        data_path: pathlib.Path = pathlib.Path("/tmp"),
+        host: str = DEFAULT_HOST,
+        port: int = DEFAULT_PORT,
+        workers: int = DEFAULT_WORKERS,
+        backlog: int = DEFAULT_BACKLOG,
+        writers: int = DEFAULT_WRITERS,
+        data_path: pathlib.Path = DEFAULT_DATA_PATH,
     ):
         self.host = host
         self.port = port
