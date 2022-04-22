@@ -3,12 +3,16 @@ import time
 import struct
 from enum import Enum
 from typing import Optional
+from datetime import datetime
+
+from metrics_server.constants import Intent, Aggregation
 
 
 class Status(Enum):
     ok = 1
     server_unavailable = 2
     server_error = 3
+    empty = 4
 
 
 class ProtocolMessage(abc.ABC):
@@ -22,6 +26,21 @@ class ProtocolMessage(abc.ABC):
     @abc.abstractmethod
     def from_bytes(cls, buffer):
         raise NotImplementedError()
+
+
+class IntentionPackage(ProtocolMessage):
+    fmt = "!i"
+
+    def __init__(self, intent: Intent):
+        self.intent = intent
+
+    def to_bytes(self):
+        return struct.pack(IntentionPackage.fmt, self.intent.value)
+
+    @classmethod
+    def from_bytes(cls, buffer):
+        (intent,) = struct.unpack(IntentionPackage.fmt, buffer)
+        return IntentionPackage(Intent(intent))
 
 
 class Metric(ProtocolMessage):
@@ -43,6 +62,91 @@ class Metric(ProtocolMessage):
         return f"metric: {self.identifier} -> {self.value}"
 
 
+class Query(ProtocolMessage):
+    fmt = "!28p12pddd"
+
+    def __init__(
+        self,
+        metric: str,
+        agg: Aggregation,
+        agg_window: float,
+        start: Optional[datetime],
+        end: Optional[datetime],
+    ):
+        self.metric = metric
+        self.agg = agg
+        self.agg_window = agg_window
+        self.start = start
+        self.end = end
+
+    def to_bytes(self):
+        start_ts = self.start.timestamp() if self.start is not None else -1
+        end_ts = self.end.timestamp() if self.end is not None else -1
+        return struct.pack(
+            Query.fmt,
+            self.metric.encode(),
+            self.agg.value.encode(),
+            self.agg_window,
+            start_ts,
+            end_ts,
+        )
+
+    @classmethod
+    def from_bytes(self, buffer):
+        metric, agg, agg_window, start_ts, end_ts = struct.unpack(Query.fmt, buffer)
+        return Query(
+            metric.decode(),
+            Aggregation(agg.decode()),
+            agg_window,
+            datetime.fromtimestamp(start_ts) if start_ts > 0 else None,
+            datetime.fromtimestamp(end_ts) if end_ts > 0 else None,
+        )
+
+    def __str__(self):
+        return f"query {self.metric} aggregated by {self.agg} from {self.start} to {self.end} on a window of size {self.agg_window}"
+
+
+class QueryPartialResponse(ProtocolMessage):
+    fmt = "!Hf?"
+    msgs = {
+        Status.ok: "Ok!",
+        Status.server_error: "Server error",
+        Status.server_unavailable: "Server unavailable",
+        Status.empty: "Empty response",
+    }
+
+    def __init__(self, status: Status, aggvalue: float, last: bool):
+        self.status = status
+        self.aggvalue = aggvalue
+        self.last = last
+
+    @classmethod
+    def emtpy(cls):
+        return QueryPartialResponse(Status.empty, 0, True)
+
+    @property
+    def msg(self) -> str:
+        return QueryPartialResponse.msgs[self.status]
+
+    @property
+    def error(self) -> bool:
+        return self.status in (Status.server_error, Status.server_unavailable)
+
+    @property
+    def is_empty(self):
+        return self.status == Status.empty
+
+    def to_bytes(self):
+        return struct.pack(
+            QueryPartialResponse.fmt, self.status.value, self.aggvalue, self.last
+        )
+
+    @classmethod
+    def from_bytes(cls, buffer):
+        status, aggvalue, last = struct.unpack(QueryPartialResponse.fmt, buffer)
+        return QueryPartialResponse(Status(status), aggvalue, last)
+
+
 class ReceivedMetric(ProtocolMessage):
     fmt = "!28pLf"
 
@@ -50,7 +154,7 @@ class ReceivedMetric(ProtocolMessage):
         self.identifier = identifier
         self.value = value
         if ts is None:
-            self.timestamp = time.time()
+            self.timestamp = int(time.time())
         else:
             self.timestamp = ts
 
@@ -74,10 +178,12 @@ class ReceivedMetric(ProtocolMessage):
 
 class MetricResponse(ProtocolMessage):
     fmt = "!H"
+    # TODO: abstract into abstract class
     msgs = {
         Status.ok: "Ok!",
         Status.server_error: "Server error",
         Status.server_unavailable: "Server unavailable",
+        Status.empty: "Empty response",
     }
 
     def __init__(self, status: Status):
