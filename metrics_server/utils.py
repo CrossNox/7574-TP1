@@ -1,6 +1,8 @@
 """Utils file."""
 
 import logging
+from typing import Generator
+from datetime import datetime, timedelta
 
 import typer
 
@@ -19,7 +21,7 @@ class TyperLoggerHandler(logging.Handler):
         elif record.levelno == logging.CRITICAL:
             fg = typer.colors.BRIGHT_RED
         elif record.levelno == logging.ERROR:
-            fg = typer.colors.BRIGHT_WHITE
+            fg = typer.colors.BLACK
             bg = typer.colors.BRIGHT_RED
         typer.secho(self.format(record), bg=bg, fg=fg)
 
@@ -38,3 +40,15 @@ def get_logger(name: str, level=logging.INFO):
     logger.addHandler(typer_handler)
 
     return logger
+
+
+def minute_range(
+    start_date: datetime, end_date: datetime
+) -> Generator[datetime, None, None]:
+    while start_date <= end_date:
+        yield start_date
+        start_date += timedelta(minutes=1)
+
+
+def minute_partition(ts: int) -> int:
+    return int(ts // 60)

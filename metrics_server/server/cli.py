@@ -10,6 +10,7 @@ from metrics_server.constants import (
     DEFAULT_BACKLOG,
     DEFAULT_WORKERS,
     DEFAULT_WRITERS,
+    DEFAULT_QUERIERS,
     DEFAULT_DATA_PATH,
 )
 
@@ -24,6 +25,7 @@ def main(
     workers: int = DEFAULT_WORKERS,
     backlog: int = DEFAULT_BACKLOG,
     writers: int = DEFAULT_WRITERS,
+    queriers: int = DEFAULT_QUERIERS,
     data_path: pathlib.Path = DEFAULT_DATA_PATH,
 ):
     server = Server(
@@ -32,6 +34,7 @@ def main(
         workers=workers,
         backlog=backlog,
         writers=writers,
+        queriers=queriers,
         data_path=data_path,
     )
     server.run()
