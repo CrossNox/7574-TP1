@@ -99,27 +99,24 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
     try:
         while True:
             sock, addr = queries_conns_queue.get()
-            while True:
-                # Receive query
-                buffer = sock.recv(struct.calcsize(Query.fmt))
-                if buffer == b"":
-                    break
+            buffer = sock.recv(struct.calcsize(Query.fmt))
 
-                query = Query.from_bytes(buffer)
-                logger.info("query: %s from %s", query, addr)
+            query = Query.from_bytes(buffer)
+            logger.info("query: %s from %s", query, addr)
 
-                agg = agg_metrics(
-                    data_path,
-                    query.metric,
-                    query.agg,
-                    query.agg_window,
-                    query.start,
-                    query.end,
-                )
-                for idx, value in enumerate(agg):
-                    is_last = idx == (len(agg) - 1)
-                    partial_response = QueryPartialResponse(Status.ok, value, is_last)
-                    sock.sendall(partial_response.to_bytes())
+            agg = agg_metrics(
+                data_path,
+                query.metric,
+                query.agg,
+                query.agg_window,
+                query.start,
+                query.end,
+            )
+
+            for idx, value in enumerate(agg):
+                is_last = idx == (len(agg) - 1)
+                partial_response = QueryPartialResponse(Status.ok, value, is_last)
+                sock.sendall(partial_response.to_bytes())
 
             sock.close()
 
