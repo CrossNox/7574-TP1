@@ -79,8 +79,8 @@ class Query(ProtocolMessage):
         self.end = end
 
     def to_bytes(self):
-        start_ts = self.start if self.start is not None else -1
-        end_ts = self.end if self.end is not None else -1
+        start_ts = self.start.timestamp() if self.start is not None else -1
+        end_ts = self.end.timestamp() if self.end is not None else -1
         return struct.pack(
             Query.fmt,
             self.metric.encode(),
