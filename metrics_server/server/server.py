@@ -243,8 +243,9 @@ class Notification:
         self.on = False
 
         self.prev_eval = datetime.now()
-        self.next_eval = datetime.now()
-        self.bump_eval()
+        self.next_eval = datetime.now() + timedelta(
+            seconds=self.aggregation_window_secs
+        )
 
     @property
     def is_due(self):
@@ -271,7 +272,7 @@ def handle_notifications_messages(
         while True:
             (notification_name, dt) = notifications_messages_queue.get()
             with open(notifications_path, "a") as f:
-                f.write(f"{dt} - Notification {notification_name} over the limit")
+                f.write(f"{dt} - Notification {notification_name} over the limit\n")
 
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
@@ -303,13 +304,14 @@ def watch_notifications(
                 notification.prev_eval,
                 notification.next_eval,
             )
-            # del client
 
             if any(x >= notification.limit for x in res):
+                # We are over the threshold, alarm is on
                 notifications_messages_queue.put((notification.name, datetime.now()))
                 if not notification.on:
                     notification.toggle()
             elif notification.on:
+                # We are not over the threshold anymore
                 notification.toggle()
 
             notification.bump_eval()
