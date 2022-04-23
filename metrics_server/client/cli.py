@@ -53,9 +53,19 @@ def query(
 ):
     try:
         assert agg_window >= 0
-        logger.info("%s %s %s %s %s", metric, start, end, agg, agg_window)
         agg_array = Client(host, port).send_query(metric, agg, agg_window, start, end)
         typer.echo("Aggregation: " + typer.style(agg_array, fg=typer.colors.GREEN))
+    except ConnectionRefusedError:
+        logger.error("Connection refused, check the host and port")
+
+
+@app.command()
+def monitor(
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
+):
+    try:
+        Client(host, port).monitor_notifications()
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
 
