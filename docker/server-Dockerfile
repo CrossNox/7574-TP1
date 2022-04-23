@@ -1,0 +1,8 @@
+FROM python:3.9.7-slim
+COPY pyproject.toml /app/pyproject.toml
+COPY poetry.lock /app/poetry.lock
+COPY metrics_server /app/metrics_server
+WORKDIR /app
+RUN pip install poetry
+RUN poetry install --no-dev
+ENTRYPOINT ["poetry", "run", "metrics_server"]
