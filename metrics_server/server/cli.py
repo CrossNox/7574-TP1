@@ -2,6 +2,7 @@ import pathlib
 
 import typer
 
+from metrics_server.cfg import cfg
 from metrics_server.utils import get_logger
 from metrics_server.server.server import Server
 from metrics_server.constants import (
@@ -20,13 +21,15 @@ app = typer.Typer()
 
 @app.command()
 def main(
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
-    workers: int = DEFAULT_WORKERS,
-    backlog: int = DEFAULT_BACKLOG,
-    writers: int = DEFAULT_WRITERS,
-    queriers: int = DEFAULT_QUERIERS,
-    data_path: pathlib.Path = DEFAULT_DATA_PATH,
+    host: str = cfg.server.host(default=DEFAULT_HOST),
+    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
+    workers: int = cfg.server.workers(default=DEFAULT_WORKERS, cast=int),
+    backlog: int = cfg.server.backlog(default=DEFAULT_BACKLOG, cast=int),
+    writers: int = cfg.server.writers(default=DEFAULT_WRITERS, cast=int),
+    queriers: int = cfg.server.queriers(default=DEFAULT_QUERIERS, cast=int),
+    data_path: pathlib.Path = cfg.server.data_path(
+        default=DEFAULT_DATA_PATH, cast=pathlib.Path
+    ),
 ):
     server = Server(
         host=host,
