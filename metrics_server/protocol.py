@@ -177,7 +177,7 @@ class ReceivedMetric(ProtocolMessage):
 
 
 class NotificationResponse(ProtocolMessage):
-    fmt = "!d32p?"
+    fmt = "!d128p?"
 
     def __init__(self, dt: datetime, msg: str, stopping: bool = False):
         self.dt = dt
