@@ -28,10 +28,14 @@ class Client:
         self.port = port
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.connect((host, port))
         except ConnectionRefusedError:
             logger.error("Connection refused")
             raise
+
+    def __del__(self):
+        self.socket.close()
 
     def send(self, buffer):
         self.socket.sendall(buffer)

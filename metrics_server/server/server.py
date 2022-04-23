@@ -6,13 +6,15 @@ import socket
 import struct
 import pathlib
 import multiprocessing
-from datetime import datetime
 from typing import List, Optional
+from datetime import datetime, timedelta
 
 import pandas as pd
+import youconfigme as ycm
 
-from metrics_server.exceptions import EmptyAggregationArray
+from metrics_server.client.client import Client
 from metrics_server.utils import get_logger, minute_partition
+from metrics_server.exceptions import EmptyAggregationArray, InvalidNotificationSetting
 from metrics_server.protocol import (
     Query,
     Metric,
@@ -64,9 +66,9 @@ def handle_metrics_conns(
                 metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
 
     except ConnectionResetError:
-        logger.info("Client closed connection before I could respond")
+        logger.error("Client closed connection before I could respond")
     except OSError:
-        logger.info("Error while reading socket")
+        logger.error("Error while reading socket", exc_info=True)
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
     except:  # pylint: disable=bare-except
@@ -94,6 +96,8 @@ def write_metrics(data_path: pathlib.Path, metrics_queue: multiprocessing.Queue)
                 )
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
+    except:  # pylint: disable=bare-except
+        logger.error("write_metrics err", exc_info=True)
     finally:
         logger.info("Exiting")
 
@@ -213,11 +217,113 @@ def dispatch_conn(connections_queue, metrics_conns_queue, queries_conns_queue):
             sock.close()
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
+    except:
+        logger.error("dispatch_conn err", exc_info=True)
+        raise
     finally:
         try:
             sock.close()
         except UnboundLocalError:
             pass
+
+
+class Notification:
+    def __init__(
+        self,
+        name: str,
+        metric: str,
+        agg: Aggregation,
+        aggregation_window_secs: float,
+        limit: float,
+    ):
+        self.name = name
+        self.metric = metric
+        self.agg = agg
+        self.aggregation_window_secs = aggregation_window_secs
+        self.limit = limit
+        self.on = False
+
+        self.prev_eval = datetime.now()
+        self.next_eval = datetime.now()
+        self.bump_eval()
+
+    @property
+    def is_due(self):
+        return self.next_eval <= datetime.now()
+
+    def bump_eval(self):
+        self.prev_eval = self.next_eval
+        if not self.on:
+            self.next_eval += timedelta(seconds=self.aggregation_window_secs)
+        else:
+            self.next_eval += timedelta(seconds=60)
+
+    def toggle(self):
+        self.on = not self.on
+
+
+def handle_notifications_messages(
+    data_path: pathlib.Path, notifications_messages_queue: multiprocessing.Queue
+):
+    try:
+        notifications_path = pathlib.Path(data_path / "notifications")
+        notifications_path.touch(exist_ok=True)
+
+        while True:
+            (notification_name, dt) = notifications_messages_queue.get()
+            with open(notifications_path, "a") as f:
+                f.write(f"{dt} - Notification {notification_name} over the limit")
+
+    except KeyboardInterrupt:
+        logger.info("Got keyboard interrupt")
+    except:  # pylint: disable=bare-except
+        logger.error("Unkown errors", exc_info=True)
+    finally:
+        logger.info("Exiting")
+
+
+def watch_notifications(
+    notifications_queue: multiprocessing.Queue,
+    port: int,
+    host: str,
+    notifications_messages_queue: multiprocessing.Queue,
+):
+    try:
+        while True:
+            notification = notifications_queue.get()
+
+            if not notification.is_due:
+                notifications_queue.put(notification)
+                continue
+
+            client = Client(host=host, port=port)
+            res = client.send_query(
+                notification.metric,
+                notification.agg,
+                notification.aggregation_window_secs,
+                notification.prev_eval,
+                notification.next_eval,
+            )
+            # del client
+
+            if any(res >= notification.limit):
+                notifications_messages_queue.put((notification.name, datetime.now()))
+                if not notification.on:
+                    notification.toggle()
+            elif notification.on:
+                notification.toggle()
+
+            notification.bump_eval()
+
+            notifications_queue.put(notification)
+    except ConnectionRefusedError:
+        logger.error("Conn closed", exc_info=True)
+    except KeyboardInterrupt:
+        logger.info("Got keyboard interrupt")
+    except:  # pylint: disable=bare-except
+        logger.error("Unkown errors", exc_info=True)
+    finally:
+        logger.info("Exiting")
 
 
 class Server:
@@ -229,13 +335,18 @@ class Server:
         backlog: int = DEFAULT_BACKLOG,
         writers: int = DEFAULT_WRITERS,
         queriers: int = DEFAULT_QUERIERS,
+        notifiers: int = 4,
         data_path: pathlib.Path = DEFAULT_DATA_PATH,
+        notifications: ycm.Config = ycm.AutoConfig(
+            filename="notifications.ini", max_up_levels=4
+        ),
     ):
         self.host = host
         self.port = port
         self.workers = workers
         self.listen_backlog = backlog
         self.data_path = data_path
+        self.notifications = notifications
 
         # Queues
         self.connections_queue: multiprocessing.Queue = multiprocessing.Queue()
@@ -243,6 +354,30 @@ class Server:
         self.queries_conns_queue: multiprocessing.Queue = multiprocessing.Queue()
         self.metrics_queues: List[multiprocessing.Queue] = [
             multiprocessing.Queue() for _ in range(writers)
+        ]
+        self.notifications_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self.notifications_messages_queue: multiprocessing.Queue = (
+            multiprocessing.Queue()
+        )
+
+        # Notification messages handler
+        self.notifications_messages_handler = multiprocessing.Process(
+            target=handle_notifications_messages,
+            args=(data_path, self.notifications_messages_queue),
+        )
+
+        # Notification watchers
+        self.notifications_workers: List[multiprocessing.Process] = [
+            multiprocessing.Process(
+                target=watch_notifications,
+                args=(
+                    self.notifications_queue,
+                    self.port,
+                    self.host,
+                    self.notifications_messages_queue,
+                ),
+            )
+            for _ in range(notifiers)
         ]
 
         # Connection dispatcher
@@ -333,16 +468,45 @@ class Server:
         for p in self.queries_calculators:
             p.start()
 
+        self.notifications_messages_handler.start()
+
+        for p in self.notifications_workers:
+            p.start()
+
         self.conn_dispatcher.start()
 
+        logger.info("Initializing...")
+
         try:
+            try:
+                for k, v in self.notifications.to_dict().items():
+                    new_notif = Notification(
+                        k,
+                        v["metric_id"],
+                        Aggregation(v["aggregation"]),
+                        float(v["aggregation_window_secs"]),
+                        float(v["limit"]),
+                    )
+                    self.notifications_queue.put(new_notif)
+            except ValueError:
+                logger.error("Invalid notification setting %s", v, exc_info=True)
+                raise InvalidNotificationSetting
+            except:
+                logger.error("Unkown notification setting error", exc_info=True)
+                raise InvalidNotificationSetting
+
+            logger.info("starting loop")
             while not self._signaled_termination:
                 client_sock, client_addr = self._accept_new_connection()
                 self.connections_queue.put((client_sock, client_addr))
         except queue.Full:
-            pass
             # TODO: send error
+            pass
         except KeyboardInterrupt:
+            logger.info("Shutting everything down - keyboard interrupt")
+        except InvalidNotificationSetting:
+            pass
+        finally:
             self.connections_queue.close()
             self.metrics_conns_queue.close()
             self.queries_conns_queue.close()

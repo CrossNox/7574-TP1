@@ -394,7 +394,7 @@ python-versions = "*"
 
 [[package]]
 name = "youconfigme"
-version = "0.6.14"
+version = "0.6.15"
 description = "YouConfigMe helps you manage config in a pythonic way"
 category = "main"
 optional = false
@@ -644,6 +644,6 @@ wcwidth = [
     {file = "wcwidth-0.2.5.tar.gz", hash = "sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83"},
 ]
 youconfigme = [
-    {file = "youconfigme-0.6.14-py3-none-any.whl", hash = "sha256:6f7183e6fc0db80d081c731aa53af05f1f5e0abfe48085e9042cc9d8ec3e3ef2"},
-    {file = "youconfigme-0.6.14.tar.gz", hash = "sha256:9a46819db3c76f0400c99f35218a7a3647ede56867aa00a746aba30a2442f344"},
+    {file = "youconfigme-0.6.15-py3-none-any.whl", hash = "sha256:c0566229803328a34790664325ddff5131b6a08d51f6c56e39fc3b6aed6bc5f2"},
+    {file = "youconfigme-0.6.15.tar.gz", hash = "sha256:839a4f593912ed58f73e54618a181399d43ead1be27b3e3da97ab69628c5e95a"},
 ]
