@@ -22,7 +22,10 @@ def ramp(
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
 ):
-    Client(host, port).ramp_metric(strategy, metric, during, initial, final)
+    try:
+        Client(host, port).ramp_metric(strategy, metric, during, initial, final)
+    except ConnectionRefusedError:
+        logger.error("Connection refused, check the host and port")
 
 
 @app.command()
@@ -48,10 +51,13 @@ def query(
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
 ):
-    assert agg_window >= 0
-    logger.info("%s %s %s %s %s", metric, start, end, agg, agg_window)
-    agg_array = Client(host, port).send_query(metric, agg, agg_window, start, end)
-    typer.echo("Aggregation: " + typer.style(agg_array, fg=typer.colors.GREEN))
+    try:
+        assert agg_window >= 0
+        logger.info("%s %s %s %s %s", metric, start, end, agg, agg_window)
+        agg_array = Client(host, port).send_query(metric, agg, agg_window, start, end)
+        typer.echo("Aggregation: " + typer.style(agg_array, fg=typer.colors.GREEN))
+    except ConnectionRefusedError:
+        logger.error("Connection refused, check the host and port")
 
 
 if __name__ == "__main__":

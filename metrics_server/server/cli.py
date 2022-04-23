@@ -1,6 +1,7 @@
 import pathlib
 
 import typer
+from youconfigme import Config
 
 from metrics_server.cfg import cfg
 from metrics_server.utils import get_logger
@@ -30,6 +31,9 @@ def main(
     data_path: pathlib.Path = cfg.server.data_path(
         default=DEFAULT_DATA_PATH, cast=pathlib.Path
     ),
+    notifications_cfg: str = cfg.server.notifications_cfg(
+        default=str(pathlib.Path(__file__).parent.parent.parent / "notifications.ini"),
+    ),
 ):
     server = Server(
         host=host,
@@ -39,6 +43,7 @@ def main(
         writers=writers,
         queriers=queriers,
         data_path=data_path,
+        notifications=Config(from_items=notifications_cfg),
     )
     server.run()
 
