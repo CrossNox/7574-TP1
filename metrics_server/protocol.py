@@ -176,6 +176,28 @@ class ReceivedMetric(ProtocolMessage):
         return ReceivedMetric(metric.identifier, metric.value)
 
 
+class NotificationResponse(ProtocolMessage):
+    fmt = "!d128p?"
+
+    def __init__(self, dt: datetime, msg: str, stopping: bool = False):
+        self.dt = dt
+        self.msg = msg
+        self.stopping = stopping
+
+    def to_bytes(self):
+        return struct.pack(
+            NotificationResponse.fmt,
+            self.dt.timestamp(),
+            self.msg.encode(),
+            self.stopping,
+        )
+
+    @classmethod
+    def from_bytes(cls, buffer):
+        (dt, msg, stopping) = struct.unpack(NotificationResponse.fmt, buffer)
+        return NotificationResponse(datetime.fromtimestamp(dt), msg.decode(), stopping)
+
+
 class MetricResponse(ProtocolMessage):
     fmt = "!H"
     # TODO: abstract into abstract class
@@ -187,6 +209,7 @@ class MetricResponse(ProtocolMessage):
     }
 
     def __init__(self, status: Status):
+
         self.status = status
 
     @property

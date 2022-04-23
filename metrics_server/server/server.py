@@ -22,6 +22,7 @@ from metrics_server.protocol import (
     MetricResponse,
     ReceivedMetric,
     IntentionPackage,
+    NotificationResponse,
     QueryPartialResponse,
 )
 from metrics_server.constants import (
@@ -204,7 +205,9 @@ def agg_metrics(
     return df.groupby("offset").value.agg(agg.value).values.tolist()
 
 
-def dispatch_conn(connections_queue, metrics_conns_queue, queries_conns_queue):
+def dispatch_conn(
+    connections_queue, metrics_conns_queue, queries_conns_queue, monitoring_conns_queue
+):
     try:
         while True:
             sock, addr = connections_queue.get()
@@ -216,6 +219,8 @@ def dispatch_conn(connections_queue, metrics_conns_queue, queries_conns_queue):
                 metrics_conns_queue.put((sock, addr))
             elif intention_package.intent == Intent.query:
                 queries_conns_queue.put((sock, addr))
+            elif intention_package.intent == Intent.monitor:
+                monitoring_conns_queue.put((sock, addr))
 
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
@@ -268,14 +273,36 @@ class Notification:
 def handle_notifications_messages(
     notifications_log_path: pathlib.Path,
     notifications_messages_queue: multiprocessing.Queue,
+    monitoring_conns_queue: multiprocessing.Queue,
 ):
+    monitor_clients: List[socket.socket] = []
     try:
         notifications_log_path.touch(exist_ok=True)
 
         while True:
-            (notification_name, dt) = notifications_messages_queue.get()
-            with open(notifications_log_path, "a") as f:
-                f.write(f"{dt} - Notification {notification_name} over the limit\n")
+            try:
+                (notification_name, dt) = notifications_messages_queue.get(timeout=5)
+                msg = f"Notification {notification_name} over the limit"
+
+                _monitor_clients = []
+                for monitor_client in monitor_clients:
+                    try:
+                        logger.info("Sending to some listener")
+                        monitor_client.sendall(NotificationResponse(dt, msg).to_bytes())
+                        _monitor_clients.append(monitor_client)
+                    except BrokenPipeError:
+                        pass
+                    finally:
+                        monitor_clients = _monitor_clients
+
+                with open(notifications_log_path, "a") as f:
+                    f.write(f"{dt} - {msg}\n")
+            except queue.Empty:
+                try:
+                    (conn, _) = monitoring_conns_queue.get(timeout=0)
+                    monitor_clients.append(conn)
+                except queue.Empty:
+                    pass
 
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
@@ -356,6 +383,7 @@ class Server:
         self.connections_queue: multiprocessing.Queue = multiprocessing.Queue()
         self.metrics_conns_queue: multiprocessing.Queue = multiprocessing.Queue()
         self.queries_conns_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self.monitoring_conns_queue: multiprocessing.Queue = multiprocessing.Queue()
         self.metrics_queues: List[multiprocessing.Queue] = [
             multiprocessing.Queue() for _ in range(writers)
         ]
@@ -367,7 +395,11 @@ class Server:
         # Notification messages handler
         self.notifications_messages_handler = multiprocessing.Process(
             target=handle_notifications_messages,
-            args=(self.notifications_log_path, self.notifications_messages_queue),
+            args=(
+                self.notifications_log_path,
+                self.notifications_messages_queue,
+                self.monitoring_conns_queue,
+            ),
         )
 
         # Notification watchers
@@ -391,6 +423,7 @@ class Server:
                 self.connections_queue,
                 self.metrics_conns_queue,
                 self.queries_conns_queue,
+                self.monitoring_conns_queue,
             ),
         )
 
@@ -437,7 +470,6 @@ class Server:
     def _handle_sigterm(self, *_args):
         logger.debug("Got SIGTERM, exiting gracefully")
         logger.debug("Force stopping all children threads")
-
         self.connections_queue.close()
         self.metrics_conns_queue.close()
         self.queries_conns_queue.close()

@@ -16,6 +16,7 @@ from metrics_server.protocol import (
     Status,
     MetricResponse,
     IntentionPackage,
+    NotificationResponse,
     QueryPartialResponse,
 )
 
@@ -43,6 +44,21 @@ class Client:
     def receive(self, cls):
         buffer = self.socket.recv(struct.calcsize(cls.fmt))
         return cls.from_bytes(buffer)
+
+    def monitor_notifications(self):
+        try:
+            logger.info("Sending intent")
+            self.send(IntentionPackage(Intent.monitor).to_bytes())
+
+            while True:
+                new_notification = self.receive(NotificationResponse)
+                if new_notification.stopping:
+                    break
+
+                logger.info("%s - %s", new_notification.dt, new_notification.msg)
+
+        except KeyboardInterrupt:
+            pass
 
     def send_query(
         self,

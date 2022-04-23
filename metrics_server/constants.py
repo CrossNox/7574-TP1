@@ -5,6 +5,7 @@ from enum import Enum
 class Intent(Enum):
     metric = 1
     query = 2
+    monitor = 3
 
 
 class Aggregation(Enum):
