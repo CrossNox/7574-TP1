@@ -32,6 +32,9 @@ from metrics_server.constants import (
     DEFAULT_WRITERS,
     DEFAULT_QUERIERS,
     DEFAULT_DATA_PATH,
+    DEFAULT_NOTIFIERS,
+    DEFAULT_NOTIFICATIONS_FILE,
+    DEFAULT_NOTIFICATIONS_LOG_PATH,
     Intent,
     Aggregation,
 )
@@ -263,15 +266,15 @@ class Notification:
 
 
 def handle_notifications_messages(
-    data_path: pathlib.Path, notifications_messages_queue: multiprocessing.Queue
+    notifications_log_path: pathlib.Path,
+    notifications_messages_queue: multiprocessing.Queue,
 ):
     try:
-        notifications_path = pathlib.Path(data_path / "notifications")
-        notifications_path.touch(exist_ok=True)
+        notifications_log_path.touch(exist_ok=True)
 
         while True:
             (notification_name, dt) = notifications_messages_queue.get()
-            with open(notifications_path, "a") as f:
+            with open(notifications_log_path, "a") as f:
                 f.write(f"{dt} - Notification {notification_name} over the limit\n")
 
     except KeyboardInterrupt:
@@ -336,17 +339,17 @@ class Server:
         backlog: int = DEFAULT_BACKLOG,
         writers: int = DEFAULT_WRITERS,
         queriers: int = DEFAULT_QUERIERS,
-        notifiers: int = 4,
+        notifiers: int = DEFAULT_NOTIFIERS,
         data_path: pathlib.Path = DEFAULT_DATA_PATH,
-        notifications: ycm.Config = ycm.AutoConfig(
-            filename="notifications.ini", max_up_levels=4
-        ),
+        notifications_log_path: pathlib.Path = DEFAULT_NOTIFICATIONS_LOG_PATH,
+        notifications: ycm.Config = ycm.Config(str(DEFAULT_NOTIFICATIONS_FILE)),
     ):
         self.host = host
         self.port = port
         self.workers = workers
         self.listen_backlog = backlog
         self.data_path = data_path
+        self.notifications_log_path = notifications_log_path
         self.notifications = notifications
 
         # Queues
@@ -364,7 +367,7 @@ class Server:
         # Notification messages handler
         self.notifications_messages_handler = multiprocessing.Process(
             target=handle_notifications_messages,
-            args=(data_path, self.notifications_messages_queue),
+            args=(self.notifications_log_path, self.notifications_messages_queue),
         )
 
         # Notification watchers

@@ -14,6 +14,9 @@ from metrics_server.constants import (
     DEFAULT_WRITERS,
     DEFAULT_QUERIERS,
     DEFAULT_DATA_PATH,
+    DEFAULT_NOTIFIERS,
+    DEFAULT_NOTIFICATIONS_FILE,
+    DEFAULT_NOTIFICATIONS_LOG_PATH,
 )
 
 logger = get_logger(__name__)
@@ -28,11 +31,15 @@ def main(
     backlog: int = cfg.server.backlog(default=DEFAULT_BACKLOG, cast=int),
     writers: int = cfg.server.writers(default=DEFAULT_WRITERS, cast=int),
     queriers: int = cfg.server.queriers(default=DEFAULT_QUERIERS, cast=int),
+    notifiers: int = cfg.server.notifiers(default=DEFAULT_NOTIFIERS, cast=int),
     data_path: pathlib.Path = cfg.server.data_path(
         default=DEFAULT_DATA_PATH, cast=pathlib.Path
     ),
+    notifications_log_path: pathlib.Path = cfg.server.notifications_log_path(
+        default=DEFAULT_NOTIFICATIONS_LOG_PATH, cast=pathlib.Path
+    ),
     notifications_cfg: str = cfg.server.notifications_cfg(
-        default=str(pathlib.Path(__file__).parent.parent.parent / "notifications.ini"),
+        default=str(DEFAULT_NOTIFICATIONS_FILE),
     ),
 ):
     server = Server(
@@ -42,7 +49,9 @@ def main(
         backlog=backlog,
         writers=writers,
         queriers=queriers,
+        notifiers=notifiers,
         data_path=data_path,
+        notifications_log_path=notifications_log_path,
         notifications=Config(from_items=notifications_cfg),
     )
     server.run()

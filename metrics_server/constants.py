@@ -23,7 +23,14 @@ class Ramp(Enum):
 DEFAULT_PORT: int = 5678
 DEFAULT_HOST: str = "localhost"
 DEFAULT_WORKERS: int = 16
-DEFAULT_BACKLOG: int = 10
-DEFAULT_WRITERS: int = 10
-DEFAULT_QUERIERS: int = 2
+DEFAULT_BACKLOG: int = 8
+DEFAULT_WRITERS: int = 16
+DEFAULT_QUERIERS: int = 4
+DEFAULT_NOTIFIERS: int = 4
 DEFAULT_DATA_PATH: pathlib.Path = pathlib.Path("/tmp")
+DEFAULT_NOTIFICATIONS_LOG_PATH: pathlib.Path = pathlib.Path(
+    "/tmp/metrics_server_notifications.log"
+)
+DEFAULT_NOTIFICATIONS_FILE: pathlib.Path = (
+    pathlib.Path(__file__).parent.parent / "notifications.ini"
+)
