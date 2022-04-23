@@ -214,7 +214,6 @@ def dispatch_conn(connections_queue, metrics_conns_queue, queries_conns_queue):
             elif intention_package.intent == Intent.query:
                 queries_conns_queue.put((sock, addr))
 
-            sock.close()
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
     except:
@@ -306,7 +305,7 @@ def watch_notifications(
             )
             # del client
 
-            if any(res >= notification.limit):
+            if any(x >= notification.limit for x in res):
                 notifications_messages_queue.put((notification.name, datetime.now()))
                 if not notification.on:
                     notification.toggle()
