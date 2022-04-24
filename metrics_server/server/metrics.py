@@ -4,9 +4,8 @@ import pathlib
 import multiprocessing
 from typing import List
 
-from server_metrics.constants import Status
-from server_metrics.utils import get_logger, minute_partition
-from server_metrics.protocol import Metric, MetricResponse, ReceivedMetric
+from metrics_server.utils import get_logger, minute_partition
+from metrics_server.protocol import Metric, Status, MetricResponse, ReceivedMetric
 
 logger = get_logger(__name__)
 

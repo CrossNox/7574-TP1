@@ -28,6 +28,7 @@ class Client:
         self.host = host
         self.port = port
         try:
+            logger.info("Attempting to connect to %s:%s", self.host, self.port)
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.connect((host, port))
