@@ -7,10 +7,10 @@ from typing import List, Optional
 
 import pandas as pd
 
-from metrics_server.constants import Status, Aggregation
+from metrics_server.constants import Aggregation
 from metrics_server.exceptions import EmptyAggregationArray
 from metrics_server.utils import get_logger, minute_partition
-from metrics_server.protocol import Query, QueryPartialResponse
+from metrics_server.protocol import Query, Status, QueryPartialResponse
 
 logger = get_logger(__name__)
 
