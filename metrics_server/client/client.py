@@ -1,7 +1,6 @@
 import time
 import socket
 import struct
-import logging
 from datetime import datetime
 from collections import defaultdict
 from typing import List, Optional, DefaultDict
@@ -20,7 +19,7 @@ from metrics_server.protocol import (
     QueryPartialResponse,
 )
 
-logger = get_logger(__name__, logging.DEBUG)
+logger = get_logger(__name__)
 
 
 class Client:

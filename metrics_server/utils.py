@@ -4,9 +4,21 @@ import logging
 
 import typer
 
+DEFAULT_PRETTY = False
+
+DEFAULT_VERBOSE = 0
+
 
 class TyperLoggerHandler(logging.Handler):
+    def __init__(self, pretty: bool, *args, **kwargs):
+        self.pretty = pretty
+        super().__init__(*args, **kwargs)
+
     def emit(self, record: logging.LogRecord) -> None:
+        if not self.pretty:
+            typer.secho(self.format(record))
+            return
+
         fg = None
         bg = None
         if record.levelno == logging.DEBUG:
@@ -24,20 +36,30 @@ class TyperLoggerHandler(logging.Handler):
         typer.secho(self.format(record), bg=bg, fg=fg)
 
 
-def get_logger(name: str, level=logging.INFO):
-    logger = logging.getLogger(name)
+def config_logging(verbose: int = DEFAULT_VERBOSE, pretty: bool = DEFAULT_PRETTY):
+    """Configure logging for stream and file."""
+
+    level = logging.ERROR
+    if verbose == 1:
+        level = logging.INFO
+    elif verbose > 1:
+        level = logging.DEBUG
+
+    logger = logging.getLogger()
     logger.setLevel(level)
 
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
-    typer_handler = TyperLoggerHandler()
+    typer_handler = TyperLoggerHandler(pretty=pretty)
     typer_handler.setLevel(level)
     typer_handler.setFormatter(formatter)
     logger.addHandler(typer_handler)
 
-    return logger
+
+def get_logger(name: str):
+    return logging.getLogger(name)
 
 
 def minute_partition(ts: int) -> int:

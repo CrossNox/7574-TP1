@@ -4,9 +4,14 @@ from datetime import datetime
 import typer
 
 from metrics_server.cfg import cfg
-from metrics_server.utils import get_logger
 from metrics_server.client.client import Client
 from metrics_server.constants import DEFAULT_HOST, DEFAULT_PORT, Ramp, Aggregation
+from metrics_server.utils import (
+    DEFAULT_PRETTY,
+    DEFAULT_VERBOSE,
+    get_logger,
+    config_logging,
+)
 
 logger = get_logger(__name__)
 
@@ -69,6 +74,14 @@ def monitor(
         Client(host, port).monitor_notifications()
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
+
+
+@app.callback()
+def main(
+    verbose: int = typer.Option(DEFAULT_VERBOSE, "--verbose", "-v", count=True),
+    pretty: bool = typer.Option(DEFAULT_PRETTY, "--pretty"),
+):
+    config_logging(verbose, pretty)
 
 
 if __name__ == "__main__":
