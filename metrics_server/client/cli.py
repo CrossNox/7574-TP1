@@ -3,6 +3,7 @@ from datetime import datetime
 
 import typer
 
+from metrics_server.cfg import cfg
 from metrics_server.utils import get_logger
 from metrics_server.client.client import Client
 from metrics_server.constants import DEFAULT_HOST, DEFAULT_PORT, Ramp, Aggregation
@@ -19,8 +20,8 @@ def ramp(
     during: int,
     initial: int,
     final: int,
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
+    host: str = cfg.server.host(default=DEFAULT_HOST),
+    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
 ):
     try:
         Client(host, port).ramp_metric(strategy, metric, during, initial, final)
@@ -32,8 +33,8 @@ def ramp(
 def send(
     metric: str,
     value: int,
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
+    host: str = cfg.server.host(default=DEFAULT_HOST),
+    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
 ):
     try:
         Client(host, port).send_metric(metric, value)
@@ -48,8 +49,8 @@ def query(
     agg_window: float,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
+    host: str = cfg.server.host(default=DEFAULT_HOST),
+    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
 ):
     try:
         assert agg_window >= 0
@@ -61,8 +62,8 @@ def query(
 
 @app.command()
 def monitor(
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
+    host: str = cfg.server.host(default=DEFAULT_HOST),
+    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
 ):
     try:
         Client(host, port).monitor_notifications()
