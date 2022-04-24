@@ -4,8 +4,13 @@ import typer
 from youconfigme import Config
 
 from metrics_server.cfg import cfg
-from metrics_server.utils import get_logger
 from metrics_server.server.server import Server
+from metrics_server.utils import (
+    DEFAULT_PRETTY,
+    DEFAULT_VERBOSE,
+    get_logger,
+    config_logging,
+)
 from metrics_server.constants import (
     DEFAULT_HOST,
     DEFAULT_PORT,
@@ -41,7 +46,10 @@ def main(
     notifications_cfg: str = cfg.server.notifications_cfg(
         default=str(DEFAULT_NOTIFICATIONS_FILE),
     ),
+    verbose: int = typer.Option(DEFAULT_VERBOSE, "--verbose", "-v", count=True),
+    pretty: bool = typer.Option(DEFAULT_PRETTY, "--pretty"),
 ):
+    config_logging(verbose, pretty)
     server = Server(
         host=host,
         port=port,
