@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.9] - 2022-04-25
+### Fixed
+- Error on notification responses converting from bytes
+- Use typer to print instead of printing on client CLI
+
 ## [0.9.8] - 2022-04-25
 ### Fixed
 - Responsibility of printing is on the CLI, not the Client
