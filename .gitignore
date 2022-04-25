@@ -169,3 +169,4 @@ informe/*.bcf
 informe/*.bbl
 informe/*.blg
 informe/*.run.xml
+informe/*.toc
