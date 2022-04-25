@@ -32,6 +32,8 @@ def ramp(
         Client(host, port).ramp_metric(strategy, metric, during, initial, final)
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
+    except ValueError as e:
+        logger.error(e)
 
 
 @app.command()
@@ -45,6 +47,8 @@ def send(
         Client(host, port).send_metric(metric, value)
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
+    except ValueError as e:
+        logger.error(e)
 
 
 @app.command()
