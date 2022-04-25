@@ -6,5 +6,9 @@ class MetricDoesNotExist(Exception):
     pass
 
 
+class BadMetric(Exception):
+    pass
+
+
 class InvalidNotificationSetting(Exception):
     pass

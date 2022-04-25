@@ -97,9 +97,9 @@ class Client:
         status = self.receive(MetricResponse)
 
         if status.error:
-            logger.error("Got error: %s", status.msg)
-        else:
-            logger.info("Message received correctly!")
+            raise ValueError(status.msg)
+
+        logger.info("Message received correctly!")
 
         return status
 

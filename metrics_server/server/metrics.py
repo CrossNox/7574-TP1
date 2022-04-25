@@ -4,6 +4,7 @@ import pathlib
 import multiprocessing
 from typing import List
 
+from metrics_server.exceptions import BadMetric
 from metrics_server.utils import get_logger, minute_partition
 from metrics_server.protocol import Metric, Status, MetricResponse, ReceivedMetric
 
@@ -23,8 +24,13 @@ def handle_metrics_conns(
                 if buffer == b"":
                     break
 
-                thing = Metric.from_bytes(buffer)
-                logger.info("received: %s from %s", thing, addr)
+                try:
+                    thing = Metric.from_bytes(buffer)
+                    logger.info("received: %s from %s", thing, addr)
+                except:
+                    metric_response = MetricResponse.bad_format()
+                    sock.sendall(metric_response.to_bytes())
+                    raise BadMetric()
 
                 # Reply an ack
                 metric_response = MetricResponse(Status.ok)
@@ -40,6 +46,8 @@ def handle_metrics_conns(
         logger.error("Error while reading socket", exc_info=True)
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
+    except BadMetric:
+        logger.error("Error receiving metric - bad format")
     except:  # pylint: disable=bare-except
         logger.error("Got unknown exception", exc_info=True)
     finally:
