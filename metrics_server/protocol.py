@@ -13,6 +13,7 @@ class Status(Enum):
     server_unavailable = 2
     server_error = 3
     empty = 4
+    does_not_exist = 5
 
 
 class ProtocolMessage(abc.ABC):
@@ -112,7 +113,8 @@ class QueryPartialResponse(ProtocolMessage):
         Status.ok: "Ok!",
         Status.server_error: "Server error",
         Status.server_unavailable: "Server unavailable",
-        Status.empty: "Empty response",
+        Status.empty: "Metric is empty",
+        Status.does_not_exist: "Metric does not exist",
     }
 
     def __init__(self, status: Status, aggvalue: float, last: bool):
@@ -121,7 +123,7 @@ class QueryPartialResponse(ProtocolMessage):
         self.last = last
 
     @classmethod
-    def emtpy(cls):
+    def empty(cls):
         return QueryPartialResponse(Status.empty, 0, True)
 
     @property
@@ -130,7 +132,7 @@ class QueryPartialResponse(ProtocolMessage):
 
     @property
     def error(self) -> bool:
-        return self.status in (Status.server_error, Status.server_unavailable)
+        return self.status != Status.ok
 
     @property
     def is_empty(self):
@@ -218,7 +220,7 @@ class MetricResponse(ProtocolMessage):
 
     @property
     def error(self) -> bool:
-        return self.status in (Status.server_error, Status.server_unavailable)
+        return self.status != Status.ok
 
     def to_bytes(self):
         return struct.pack(MetricResponse.fmt, self.status.value)

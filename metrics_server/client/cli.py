@@ -63,6 +63,8 @@ def query(
         typer.echo("Aggregation: " + typer.style(agg_array, fg=typer.colors.GREEN))
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
+    except ValueError as e:
+        logger.error(e)
 
 
 @app.command()

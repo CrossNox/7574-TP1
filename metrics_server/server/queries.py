@@ -8,9 +8,9 @@ from typing import List, Optional
 import pandas as pd
 
 from metrics_server.constants import Aggregation
-from metrics_server.exceptions import EmptyAggregationArray
 from metrics_server.utils import get_logger, minute_partition
 from metrics_server.protocol import Query, Status, QueryPartialResponse
+from metrics_server.exceptions import MetricDoesNotExist, EmptyAggregationArray
 
 logger = get_logger(__name__)
 
@@ -42,7 +42,11 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
                     sock.sendall(partial_response.to_bytes())
 
             except EmptyAggregationArray:
-                partial_response = QueryPartialResponse.emtpy()
+                partial_response = QueryPartialResponse.empty()
+                sock.sendall(partial_response.to_bytes())
+
+            except MetricDoesNotExist:
+                partial_response = QueryPartialResponse(Status.does_not_exist, 0, True)
                 sock.sendall(partial_response.to_bytes())
 
             finally:
@@ -74,7 +78,7 @@ def agg_metrics(
 ) -> List[float]:
     dfs = []
 
-    for partition in glob.glob(str(data_path / metric / "*")):
+    for partition in glob.iglob(str(data_path / metric / "*")):
         filename = pathlib.Path(partition)
 
         if start is not None and int(filename.name) < minute_partition(
@@ -98,7 +102,7 @@ def agg_metrics(
         dfs.append(df)
 
     if len(dfs) == 0:
-        raise EmptyAggregationArray()
+        raise MetricDoesNotExist()
 
     df = pd.concat(dfs)
 
