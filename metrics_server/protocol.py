@@ -237,6 +237,10 @@ class MetricResponse(ProtocolMessage):
     def bad_format(cls):
         return MetricResponse(Status.bad_format)
 
+    @classmethod
+    def server_unavailable(cls):
+        return MetricResponse(Status.server_unavailable)
+
     def to_bytes(self):
         return struct.pack(MetricResponse.fmt, self.status.value)
 

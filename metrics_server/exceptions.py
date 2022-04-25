@@ -14,5 +14,9 @@ class BadQuery(Exception):
     pass
 
 
+class ServerFull(Exception):
+    pass
+
+
 class InvalidNotificationSetting(Exception):
     pass
