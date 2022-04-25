@@ -1,0 +1,174 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{mathabx}
+\usepackage{graphicx}
+\usepackage{minted}
+\usepackage{booktabs}
+\usepackage[english,spanish,es-noindentfirst,es-nosectiondot,es-nolists,
+es-noshorthands,es-lcroman,es-tabla]{babel}
+\usepackage{lmodern}             % Use Latin Modern fonts
+\usepackage[T1]{fontenc}         % Better output when a diacritic/accent is used
+\usepackage[utf8]{inputenc}      % Allows to input accented characters
+\usepackage{textcomp}            % Avoid conflicts with siunitx and microtype
+\usepackage{microtype}           % Improves justification and typography
+\usepackage[svgnames]{xcolor}    % Svgnames option loads navy (blue) colour
+\usepackage[hidelinks,urlcolor=blue]{hyperref}
+\hypersetup{colorlinks=true, allcolors=Navy, pdfstartview={XYZ null null 1}}
+\newtheorem{lemma}{Lema}
+\usepackage[width=14cm,left=3.5cm,marginparwidth=3cm,marginparsep=0.35cm,
+height=21cm,top=3.7cm,headsep=1cm, headheight=1.6cm,footskip=1.2cm]{geometry}
+\usepackage{csquotes}
+\usepackage{biblatex}
+\addbibresource{informe.bib}
+
+\title{75.74 \-- Distribuidos I \-- TP1}
+\author{Mermet, Ignacio Javier \texttt{98153}}
+\date{Abril 2022}
+
+%TODO: mejorar carátula
+
+\begin{document}
+
+\maketitle
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/FIUBA.png}
+\end{figure}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Sobre la entrega}
+El código de la entrega se puede encontrar en \href{https://github.com/CrossNox/7574-TP1}{GitHub}.
+
+\section{Estructura del proyecto}
+El proyecto fue desarrollado en \texttt{python}\cite{Python} y empaquetado con \texttt{poetry}\cite{PythonPoetry}. Tiene dos CLIs asociadas:
+
+\begin{itemize}
+	\item \texttt{metrics\_server}: el servidor de métricas
+	\item \texttt{metrics\_client}: cliente para enviar, consultar y monitorear métricas
+\end{itemize}
+
+En la carpeta \texttt{docker} se encuentran disponibles los \texttt{Dockerfile} asociados tanto al servidor como al cliente.
+
+\section{Instalación y ejecución}
+Referirse al archivo \texttt{README.md} provisto en el repositorio.
+
+\section{Arquitectura general}
+\subsection{Diagrama de robustez} \label{robustez}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/diagrama_robustez.png}
+\caption{Diagrama de robustez}
+\end{figure}
+
+\subsubsection{Server loop}
+El server loop acepta las conexiones entrantes y las mete en \texttt{Connections queue} para ser despachadas al \textit{handler} adecuado.
+
+\subsubsection{Connection dispatcher}
+Es proceso se encarga tomar las conexiones entrantes en \texttt{Connections queue}, revisar el \textit{intention} declarado por la conexión y luego despacharla a la queue correspondiente a ese \textit{intention}.
+
+\subsubsection{Metrics handlers}
+Estos procesos se encargan de tomar conexiones desde \texttt{Metrics conns queue} y recibir todas las métricas enviadas desde ese cliente. Cada métrica recibida se mete en una queue de entre \texttt{Metrics queues} según \eqref{crcindex}.
+
+\subsubsection{Metrics writers}
+Cada proceso de este tipo toma metricas de una queue en particular y se encarga de escribirlas a archivos, particionando por \texttt{metric\_id} y por \texttt{timestamp}.
+
+\subsubsection{Queries handlers}
+Estos procesos se encargan de tomar una conexión desde \texttt{Queries conns queue}, recibir la query enviada desde la conexión, leer los archivos correspondientes a la metrica y período pedidos, y sobre ellos calcular las agregaciones requeridas. Luego envían este valor por la conexión establecida.
+
+\subsubsection{Notifications workers}
+Al levantar el servidor, se lee la configuración de notificaciones y cada elemento se carga en la queue \texttt{Notifications queue}. Estos procesos se encargan de tomar una notificacion desde la queue y revisar si es momento de ejecutarla, colocandola de nuevo en la queue si no lo fuera. Si lo fuera, se realiza la query correspondiente. Si la query arrojara un valor que supere el umbral definido, se coloca en la queue \texttt{Notifications messages queue} el mensaje correspondiente.
+
+\subsubsection{Notifications messages handler}
+Este proceso se encarga de distribuir a donde corresponde los mensajes de notificaciones. Por un lado escribe a un archivo los mensajes.
+
+Por otro lado, toma conexiones desde \texttt{Notifications conns queue} y las agrega a una lista interna de conexiones. Cada nuevo mensaje de notificacion es enviado a estos clientes también.
+
+\subsection{Diagrama de clases}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/classes.png}
+\caption{Diagrama de clases - generado automáticamente con \texttt{pyreverse}}
+\end{figure}
+
+\subsection{Diagrama de paquetes}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/packages.png}
+\caption{Diagrama de paquetes - generado automáticamente con \texttt{pyreverse}}
+\end{figure}
+
+\subsection{Notas sobre escalabilidad}
+El sistema permite configurar la cantidad de procesos que procesan métricas, queries y notificaciones. Si fuéramos a recibir muchas conexiones, tener un solo despachador de conexiones podría ser un cuello de botella.
+
+Por otro lado, se puede argumentar que tener un solo manejador de mensajes de notificaciones no sería un cuello de botella: no debieran saltar demasiadas alarmas al mismo tiempo, asumiendo que los sistemas que reportan métricas funcionan razonablemente bien y que las notificaciones están configuradas con valores sensatos.
+
+El uso de colas para manejar la concurrencia hace que varios de los componentes del sistema escalen a un escenario multicomputing. Sin embargo, hay que tener algunas consideraciones.
+
+Asumamos que la cantidad de queues de métricas es constante. Sea $M_i$ el identificador de la i-ésima métrica que se ha recibido. $M_i$ se asigna a la queue $Q_j$ donde
+
+\begin{equation}\label{crcindex}
+	j = \text{crc}(M_i) \mod \mid \text{Queues de métricas} \mid
+\end{equation}
+
+El proceso $W_j$ toma métricas de la queue $Q_j$ y las escribe a disco, particionadas por identificador de la metrica y por minuto del timestamp de la metrica recibida. Notar que $M_i$ \textbf{siempre} es escrita por $W_j$.
+
+Un proceso $Y_j$ que resuelva consultas sobre una métrica $M_i$ debe o bien ser ejecutado en la misma máquina que el proceso $W_j$ o tener acceso al filesystem de $W_j$.
+
+El segundo caso no es trivial de resolver. Tecnologías como HDFS\cite{HDFS} involucran una gran cantidad de ingenería que, se entiende, supera los objetivos del presente trabajo práctico.
+
+Para poder resolver el primer escenario se puede replicar lo que se usa para escribir las métricas: mandar cada query $Q_x$ sobre la métrica $M_i$ a una queue. El proceso $Y_j$ vive en la misma máquina que $W_j$, toma la query de la queue y la ejecuta, teniendo acceso a los archivos de $M_i$.
+
+Si la cantidad de queues de métricas/cantidad de procesos que escriben métricas a archivos cambiase, se deberían reshufflear los archivos de todas las métricas a la máquina correspondiente. Este proceso podría demorar levantar el server para poder recibir métricas y responder queries.
+
+
+\section{Protocolo de comunicación}
+La comunicación cliente-servidor utiliza un protocolo binario. La comunicación se inicia enviando un paquete \texttt{Intention}\cite{IntentionPackage} que indica que tipo de operación se desea ejecutar:
+\begin{itemize}
+	\item Enviar métrica
+	\item Consultar métrica
+	\item Monitorear notificaciones
+\end{itemize}
+
+Luego el protocolo de comunicación continúa de acuerdo a cada caso particular.
+
+\subsection{Envío de métrica}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/envio_metricas.png}
+\caption{Diagrama de secuencia - envío de métricas}
+\end{figure}
+
+\subsection{Consulta de métrica}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/query.png}
+\caption{Diagrama de secuencia - envío de métricas}
+\end{figure}
+
+\subsection{Monitoreo de notificaciones}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/notificaciones.png}
+\caption{Diagrama de secuencia - monitoreo de notificaciones}
+\end{figure}
+
+\section{Resolución de concurrencia}
+La concurrencia entre distintos procesos se resuelve, en su totalidad, con el uso de queues. De este modo podemos escalar fácilmente la cantidad de procesos de cada tipo, tomando su entrada desde la queue correspondiente y, de ser necesario, dejando su resultado en otra queue.
+
+Para entender como se relacionan los procesos y las queues, referirse a \ref{robustez}.
+
+\subsection{Concurrencia entre lectura y escritura de archivos}
+Cada archivo de una métrica $M_i$ es escrito solo por un proceso $W_j$, por tanto no hay concurrencia \texttt{WW} a resolver. La concurrencia \texttt{RW} puede darse en el caso que un proceso esté leyendo el archivo para resolver una query mientras otro sigue escribiendo métricas al mismo.
+
+Sin embargo, al leer, lo que puede pasar es que haya líneas incompletas. Estas lineas se ignoran. Por otro lado, se ignoran todas las lineas de momentos anteriores al momento donde se empieza a ejecutar la query. De este modo, dos queries ejecutadas en el mismo instante, reciben la misma respuesta, sin importar el momento de completado de procesamiento de las mismas.
+
+\printbibliography
+
+\end{document}

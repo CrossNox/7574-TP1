@@ -154,4 +154,19 @@ Pipfile*
 ### Other ###
 *.csv
 
+# Docker volumes
 data/*
+
+# Tex
+informe/*.log
+informe/*.fls
+informe/*.synctex.gz
+informe/*.fdb_latexmk
+informe/*.aux
+informe/_minted-informe/
+informe/*.out
+informe/*.bcf
+informe/*.bbl
+informe/*.blg
+informe/*.run.xml
+informe/*.toc

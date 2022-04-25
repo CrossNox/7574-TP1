@@ -31,7 +31,7 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
                     query.agg,
                     query.agg_window,
                     query.start,
-                    query.end,
+                    min(query.end, datetime.now()) if query.end else datetime.now(),
                 )
 
                 logger.info("Got %s metrics to send", len(agg))
@@ -86,6 +86,7 @@ def agg_metrics(
             continue
 
         df = pd.read_csv(filename, names=["ts", "metric", "value"], engine="c")
+        df = df[df.notnull().all()]
         df.ts = df.ts.apply(datetime.fromtimestamp)
 
         if start is not None:
