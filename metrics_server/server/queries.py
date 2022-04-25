@@ -10,7 +10,11 @@ import pandas as pd
 from metrics_server.constants import Aggregation
 from metrics_server.utils import get_logger, minute_partition
 from metrics_server.protocol import Query, Status, QueryPartialResponse
-from metrics_server.exceptions import MetricDoesNotExist, EmptyAggregationArray
+from metrics_server.exceptions import (
+    BadQuery,
+    MetricDoesNotExist,
+    EmptyAggregationArray,
+)
 
 logger = get_logger(__name__)
 
@@ -27,6 +31,7 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
             except:  # pylint:disable=bare-except
                 partial_response = QueryPartialResponse.bad_format()
                 sock.sendall(partial_response.to_bytes())
+                raise BadQuery()
 
             try:
                 agg = agg_metrics(
@@ -62,6 +67,8 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
         logger.info("Error while reading socket")
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
+    except BadQuery:
+        logger.error("Error receiving query - bad format")
     except:  # pylint: disable=bare-except
         logger.error("Got unknown exception", exc_info=True)
     finally:

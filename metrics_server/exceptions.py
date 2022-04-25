@@ -10,5 +10,9 @@ class BadMetric(Exception):
     pass
 
 
+class BadQuery(Exception):
+    pass
+
+
 class InvalidNotificationSetting(Exception):
     pass
