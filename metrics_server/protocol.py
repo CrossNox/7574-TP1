@@ -14,6 +14,7 @@ class Status(Enum):
     server_error = 3
     empty = 4
     does_not_exist = 5
+    bad_format = 6
 
 
 class ProtocolMessage(abc.ABC):
@@ -115,6 +116,7 @@ class QueryPartialResponse(ProtocolMessage):
         Status.server_unavailable: "Server unavailable",
         Status.empty: "Metric is empty",
         Status.does_not_exist: "Metric does not exist",
+        Status.bad_format: "Bad format",
     }
 
     def __init__(self, status: Status, aggvalue: float, last: bool):
@@ -129,6 +131,10 @@ class QueryPartialResponse(ProtocolMessage):
     @classmethod
     def not_exist(cls):
         return QueryPartialResponse(Status.does_not_exist, 0, True)
+
+    @classmethod
+    def bad_format(cls):
+        return QueryPartialResponse(Status.bad_format, 0, True)
 
     @property
     def msg(self) -> str:
@@ -212,10 +218,11 @@ class MetricResponse(ProtocolMessage):
         Status.server_error: "Server error",
         Status.server_unavailable: "Server unavailable",
         Status.empty: "Empty response",
+        Status.does_not_exist: "Metric does not exist",
+        Status.bad_format: "Bad format",
     }
 
     def __init__(self, status: Status):
-
         self.status = status
 
     @property
@@ -225,6 +232,10 @@ class MetricResponse(ProtocolMessage):
     @property
     def error(self) -> bool:
         return self.status != Status.ok
+
+    @classmethod
+    def bad_format(cls):
+        return MetricResponse(Status.bad_format)
 
     def to_bytes(self):
         return struct.pack(MetricResponse.fmt, self.status.value)

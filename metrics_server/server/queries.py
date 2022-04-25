@@ -21,8 +21,12 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
             sock, addr = queries_conns_queue.get()
             buffer = sock.recv(struct.calcsize(Query.fmt))
 
-            query = Query.from_bytes(buffer)
-            logger.info("query: %s from %s", query, addr)
+            try:
+                query = Query.from_bytes(buffer)
+                logger.info("query: %s from %s", query, addr)
+            except:  # pylint:disable=bare-except
+                partial_response = QueryPartialResponse.bad_format()
+                sock.sendall(partial_response.to_bytes())
 
             try:
                 agg = agg_metrics(
