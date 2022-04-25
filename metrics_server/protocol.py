@@ -126,6 +126,10 @@ class QueryPartialResponse(ProtocolMessage):
     def empty(cls):
         return QueryPartialResponse(Status.empty, 0, True)
 
+    @classmethod
+    def not_exist(cls):
+        return QueryPartialResponse(Status.does_not_exist, 0, True)
+
     @property
     def msg(self) -> str:
         return QueryPartialResponse.msgs[self.status]

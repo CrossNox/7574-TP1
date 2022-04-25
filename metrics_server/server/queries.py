@@ -46,7 +46,7 @@ def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathli
                 sock.sendall(partial_response.to_bytes())
 
             except MetricDoesNotExist:
-                partial_response = QueryPartialResponse(Status.does_not_exist, 0, True)
+                partial_response = QueryPartialResponse.not_exist()
                 sock.sendall(partial_response.to_bytes())
 
             finally:
