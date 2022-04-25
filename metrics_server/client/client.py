@@ -52,6 +52,9 @@ class Client:
 
             while True:
                 new_notification = self.receive(NotificationResponse)
+                if new_notification.error:
+                    raise ValueError(new_notification.msg)
+
                 if new_notification.stopping:
                     break
 
