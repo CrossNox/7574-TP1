@@ -77,7 +77,10 @@ def monitor(
     port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
 ):
     try:
-        Client(host, port).monitor_notifications()
+        for dt, message in Client(host, port).monitor_notifications():
+            # Makes no sense to use logging here
+            # We want to print regardless of verbosity
+            print(f"{dt} - {message}")
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
     except ValueError as e:
