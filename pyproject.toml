@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "metrics_server"
-version = "0.9.9"
+version = "0.9.10"
 description = "TP1 para 7574 - Distribuidos I."
 authors = ["CrossNox <ijmermet@gmail.com>"]
 readme = "README.md"
@@ -21,8 +21,8 @@ bump2version = "^1.0.1"
 flake8 = "^3.9.2"
 
 [tool.poetry.scripts]
-metrics_client = "metrics_server.client.cli:app()"
-metrics_server = "metrics_server.server.cli:app()"
+metrics_client = "metrics_server.client.cli:app"
+metrics_server = "metrics_server.server.cli:app"
 
 [tool.black]
 line-length = 88

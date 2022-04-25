@@ -18,6 +18,8 @@ class Status(Enum):
 
 
 class ProtocolMessage(abc.ABC):
+    """Abstract class of classes to be sent over binary protocol."""
+
     fmt = ""
 
     @abc.abstractmethod
@@ -31,6 +33,8 @@ class ProtocolMessage(abc.ABC):
 
 
 class IntentionPackage(ProtocolMessage):
+    """Declaration of intention."""
+
     fmt = "!i"
 
     def __init__(self, intent: Intent):
@@ -46,6 +50,8 @@ class IntentionPackage(ProtocolMessage):
 
 
 class Metric(ProtocolMessage):
+    """Metric to send."""
+
     fmt = "!28pL"
 
     def __init__(self, identifier: str, value: int):
@@ -65,6 +71,8 @@ class Metric(ProtocolMessage):
 
 
 class Query(ProtocolMessage):
+    """Query to send."""
+
     fmt = "!28p12pddd"
 
     def __init__(
@@ -109,6 +117,8 @@ class Query(ProtocolMessage):
 
 
 class QueryPartialResponse(ProtocolMessage):
+    """Partial response sent to answer a query."""
+
     fmt = "!Hf?"
     msgs = {
         Status.ok: "Ok!",
@@ -164,6 +174,8 @@ class QueryPartialResponse(ProtocolMessage):
 
 
 class ReceivedMetric(ProtocolMessage):
+    """Metric received by the server."""
+
     fmt = "!28pLf"
 
     def __init__(self, identifier: str, value: int, ts: Optional[int] = None):
@@ -193,6 +205,8 @@ class ReceivedMetric(ProtocolMessage):
 
 
 class NotificationResponse(ProtocolMessage):
+    """Notification data to send to monitoring clients."""
+
     fmt = "!d128p?H"
 
     msgs = {
@@ -242,6 +256,8 @@ class NotificationResponse(ProtocolMessage):
 
 
 class MetricResponse(ProtocolMessage):
+    """Response to a received metric."""
+
     fmt = "!H"
     # TODO: abstract into abstract class
     msgs = {

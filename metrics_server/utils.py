@@ -1,6 +1,7 @@
 """Utils file."""
 
 import logging
+from typing import Union
 
 import typer
 
@@ -62,5 +63,6 @@ def get_logger(name: str):
     return logging.getLogger(name)
 
 
-def minute_partition(ts: int) -> int:
+def minute_partition(ts: Union[float, int]) -> int:
+    """Get the minute partition from a timestamp."""
     return int(ts // 60)
