@@ -55,7 +55,7 @@ class Client:
                 if new_notification.stopping:
                     break
 
-                logger.info("%s - %s", new_notification.dt, new_notification.msg)
+                logger.info("%s - %s", new_notification.dt, new_notification.message)
 
         except KeyboardInterrupt:
             pass

@@ -136,6 +136,10 @@ class QueryPartialResponse(ProtocolMessage):
     def bad_format(cls):
         return QueryPartialResponse(Status.bad_format, 0, True)
 
+    @classmethod
+    def server_unavailable(cls):
+        return QueryPartialResponse(Status.server_unavailable, 0, True)
+
     @property
     def msg(self) -> str:
         return QueryPartialResponse.msgs[self.status]
@@ -189,25 +193,52 @@ class ReceivedMetric(ProtocolMessage):
 
 
 class NotificationResponse(ProtocolMessage):
-    fmt = "!d128p?"
+    fmt = "!d128p?H"
 
-    def __init__(self, dt: datetime, msg: str, stopping: bool = False):
+    msgs = {
+        Status.ok: "Ok!",
+        Status.server_error: "Server error",
+        Status.server_unavailable: "Server unavailable",
+        Status.empty: "Empty response",
+        Status.does_not_exist: "Metric does not exist",
+        Status.bad_format: "Bad format",
+    }
+
+    def __init__(
+        self, dt: datetime, msg: str, stopping: bool = False, status: Status = Status.ok
+    ):
         self.dt = dt
-        self.msg = msg
+        self.message = msg
         self.stopping = stopping
+        self.status = status
 
     def to_bytes(self):
         return struct.pack(
             NotificationResponse.fmt,
             self.dt.timestamp(),
-            self.msg.encode(),
+            self.message.encode(),
             self.stopping,
+            self.status,
         )
 
     @classmethod
     def from_bytes(cls, buffer):
-        (dt, msg, stopping) = struct.unpack(NotificationResponse.fmt, buffer)
-        return NotificationResponse(datetime.fromtimestamp(dt), msg.decode(), stopping)
+        (dt, msg, stopping, status) = struct.unpack(NotificationResponse.fmt, buffer)
+        return NotificationResponse(
+            datetime.fromtimestamp(dt), msg.decode(), stopping, status
+        )
+
+    @classmethod
+    def server_unavailable(cls):
+        return NotificationResponse(datetime.now(), "", Status.server_unavailable)
+
+    @property
+    def msg(self) -> str:
+        return NotificationResponse.msgs[self.status]
+
+    @property
+    def error(self) -> bool:
+        return self.status != Status.ok
 
 
 class MetricResponse(ProtocolMessage):
