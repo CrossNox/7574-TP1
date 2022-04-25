@@ -80,6 +80,8 @@ def monitor(
         Client(host, port).monitor_notifications()
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
+    except ValueError as e:
+        logger.error(e)
 
 
 @app.callback()

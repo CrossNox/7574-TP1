@@ -2,6 +2,7 @@ import queue
 import signal
 import socket
 import struct
+import logging
 import pathlib
 import multiprocessing
 from typing import List
@@ -9,7 +10,6 @@ from typing import List
 import youconfigme as ycm
 
 from metrics_server.utils import get_logger
-from metrics_server.protocol import IntentionPackage
 from metrics_server.server.queries import handle_queries
 from metrics_server.exceptions import InvalidNotificationSetting
 from metrics_server.server.metrics import write_metrics, handle_metrics_conns
@@ -17,6 +17,13 @@ from metrics_server.server.notifications import (
     Notification,
     watch_notifications,
     handle_notifications_messages,
+)
+from metrics_server.protocol import (
+    MetricResponse,
+    ProtocolMessage,
+    IntentionPackage,
+    NotificationResponse,
+    QueryPartialResponse,
 )
 from metrics_server.constants import (
     DEFAULT_HOST,
@@ -45,13 +52,22 @@ def dispatch_conn(
 
             buffer = sock.recv(struct.calcsize(IntentionPackage.fmt))
             intention_package = IntentionPackage.from_bytes(buffer)
-
-            if intention_package.intent == Intent.metric:
-                metrics_conns_queue.put((sock, addr))
-            elif intention_package.intent == Intent.query:
-                queries_conns_queue.put((sock, addr))
-            elif intention_package.intent == Intent.monitor:
-                monitoring_conns_queue.put((sock, addr))
+            try:
+                if intention_package.intent == Intent.metric:
+                    metrics_conns_queue.put((sock, addr))
+                elif intention_package.intent == Intent.query:
+                    queries_conns_queue.put((sock, addr))
+                elif intention_package.intent == Intent.monitor:
+                    monitoring_conns_queue.put((sock, addr))
+            except queue.Full:
+                response: ProtocolMessage
+                if intention_package.intent == Intent.metric:
+                    response = MetricResponse.server_unavailable()
+                elif intention_package.intent == Intent.query:
+                    response = QueryPartialResponse.server_unavailable()
+                elif intention_package.intent == Intent.monitor:
+                    response = NotificationResponse.server_unavailable()
+                sock.sendall(response.to_bytes())
 
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
@@ -242,7 +258,24 @@ class Server:
             logger.info("starting loop")
             while not self._signaled_termination:
                 client_sock, client_addr = self._accept_new_connection()
-                self.connections_queue.put((client_sock, client_addr))
+                try:
+                    self.connections_queue.put((client_sock, client_addr))
+                except queue.Full:
+                    logging.info("Discarding connection")
+                    # This might take a while, but gives time for the conn queues to
+                    # make some space
+                    buffer = client_sock.recv(struct.calcsize(IntentionPackage.fmt))
+                    intention_package = IntentionPackage.from_bytes(buffer)
+
+                    response: ProtocolMessage
+                    if intention_package.intent == Intent.metric:
+                        response = MetricResponse.server_unavailable()
+                    elif intention_package.intent == Intent.query:
+                        response = QueryPartialResponse.server_unavailable()
+                    elif intention_package.intent == Intent.monitor:
+                        response = NotificationResponse.server_unavailable()
+                    client_sock.sendall(response.to_bytes())
+
         except queue.Full:
             # TODO: send error
             pass
