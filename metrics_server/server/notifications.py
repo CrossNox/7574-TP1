@@ -106,26 +106,31 @@ def watch_notifications(
                 continue
 
             client = Client(host=host, port=port)
-            res = client.send_query(
-                notification.metric,
-                notification.agg,
-                notification.aggregation_window_secs,
-                notification.prev_eval,
-                notification.next_eval,
-            )
+            try:
+                res = client.send_query(
+                    notification.metric,
+                    notification.agg,
+                    notification.aggregation_window_secs,
+                    notification.prev_eval,
+                    notification.next_eval,
+                )
 
-            if any(x >= notification.limit for x in res):
-                # We are over the threshold, alarm is on
-                notifications_messages_queue.put((notification.name, datetime.now()))
-                if not notification.on:
+                if any(x >= notification.limit for x in res):
+                    # We are over the threshold, alarm is on
+                    notifications_messages_queue.put(
+                        (notification.name, datetime.now())
+                    )
+                    if not notification.on:
+                        notification.toggle()
+                elif notification.on:
+                    # We are not over the threshold anymore
                     notification.toggle()
-            elif notification.on:
-                # We are not over the threshold anymore
-                notification.toggle()
+            except ValueError:
+                pass
+            finally:
+                notification.bump_eval()
+                notifications_queue.put(notification)
 
-            notification.bump_eval()
-
-            notifications_queue.put(notification)
     except ConnectionRefusedError:
         logger.error("Conn closed", exc_info=True)
     except KeyboardInterrupt:

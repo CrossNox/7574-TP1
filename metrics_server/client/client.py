@@ -81,7 +81,6 @@ class Client:
             response = self.receive(QueryPartialResponse)
 
             if response.error:
-                logger.error(response.msg)
                 raise ValueError(response.msg)
 
             status.append(response.aggvalue)
