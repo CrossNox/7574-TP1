@@ -79,12 +79,10 @@ class Client:
         status = []
         while True:
             response = self.receive(QueryPartialResponse)
-            if response.is_empty:
-                break
 
             if response.error:
-                # TODO
-                pass
+                raise ValueError(response.msg)
+
             status.append(response.aggvalue)
             if response.last:
                 break
