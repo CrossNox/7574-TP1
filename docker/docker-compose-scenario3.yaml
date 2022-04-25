@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+  server:
+    container_name: server
+    image: 7574-server:latest
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SERVER_DATA_PATH=/data
+      - SERVER_NOTIFICATIONS_LOG_PATH=/data/metrics_server_notifications.log
+      - SERVER_NOTIFICATIONS_CFG=/app/notifications.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/server-Dockerfile
+    volumes:
+      - ./notification_configs/notifications3.ini:/app/notifications.ini:ro
+      - data3:/data
+
+  metric_foo:
+    image: 7574-client:latest
+    environment:
+      - SERVER_HOST=server
+      - SERVER_NOTIFICATIONS_CFG=/app/settings.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/client-Dockerfile
+    depends_on:
+      - server
+    command: ramp constant foo 20 5 5
+
+  query_foo:
+    image: 7574-client:latest
+    environment:
+      - SERVER_HOST=server
+      - SERVER_NOTIFICATIONS_CFG=/app/settings.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/client-Dockerfile
+    depends_on:
+      - metric_foo
+    entrypoint: bash -c "while ping -c1 metric_foo &>/dev/null; do sleep 1; done; poetry run metrics_client query bar max 0"
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24
+
+volumes:
+  data3:

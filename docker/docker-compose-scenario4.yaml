@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  server:
+    container_name: server
+    image: 7574-server:latest
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SERVER_DATA_PATH=/data
+      - SERVER_NOTIFICATIONS_LOG_PATH=/data/metrics_server_notifications.log
+      - SERVER_NOTIFICATIONS_CFG=/app/notifications.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/server-Dockerfile
+    volumes:
+      - ./notification_configs/notifications4.ini:/app/notifications.ini:ro
+      - data4:/data
+
+  metric_foo:
+    image: 7574-client:latest
+    environment:
+      - SERVER_HOST=server
+      - SERVER_NOTIFICATIONS_CFG=/app/settings.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/client-Dockerfile
+    depends_on:
+      - server
+    command: ramp exponential foo 60 1 250
+
+  metric_bar:
+    image: 7574-client:latest
+    environment:
+      - SERVER_HOST=server
+      - SERVER_NOTIFICATIONS_CFG=/app/settings.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/client-Dockerfile
+    depends_on:
+      - server
+    command: ramp exponential bar 60 1 250
+
+  monitor:
+    image: 7574-client:latest
+    environment:
+      - SERVER_HOST=server
+      - SERVER_NOTIFICATIONS_CFG=/app/settings.ini
+    networks:
+      - testing_net
+    build:
+      context: ..
+      dockerfile: docker/client-Dockerfile
+    depends_on:
+      - server
+    command: monitor
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24
+
+volumes:
+  data4:
