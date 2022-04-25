@@ -72,8 +72,10 @@ def handle_notifications_messages(
 
         while True:
             try:
-                (notification_name, dt) = notifications_messages_queue.get(timeout=5)
-                msg = f"Notification {notification_name} over the limit"
+                (notification_name, dt, triggerval) = notifications_messages_queue.get(
+                    timeout=5
+                )
+                msg = f"Notification {notification_name} over the limit with value {triggerval}"
 
                 _monitor_clients = []
                 for monitor_client in monitor_clients:
@@ -144,7 +146,7 @@ def watch_notifications(
                 if any(x >= notification.limit for x in res):
                     # We are over the threshold, alarm is on
                     notifications_messages_queue.put(
-                        (notification.name, datetime.now())
+                        (notification.name, datetime.now(), max(res))
                     )
                     if not notification.on:
                         notification.toggle()
