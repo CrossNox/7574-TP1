@@ -20,6 +20,15 @@ logger = get_logger(__name__)
 
 
 def handle_queries(queries_conns_queue: multiprocessing.Queue, data_path: pathlib.Path):
+    """Handle connections declaring intention to send a query.
+
+    Args:
+        queries_conns_queue: queue where connections are placed.
+        data_path: folder where to read partitioned files from.
+
+    Returns:
+        None
+    """
     try:
         while True:
             sock, addr = queries_conns_queue.get()
@@ -87,6 +96,19 @@ def agg_metrics(
     start: Optional[datetime],
     end: Optional[datetime],
 ) -> List[float]:
+    """Aggregate values for metric.
+
+    Args:
+        data_path: folder where to read partitioned files from.
+        metric: id of the metric to aggregate.
+        agg: aggregation to use.
+        agg_window: how many seconds the aggregation window lasts.
+        start: begin of the query period.
+        end: end of the query period.
+
+    Returns:
+        List of aggregated values.
+    """
     dfs = []
 
     for partition in glob.iglob(str(data_path / metric / "*")):

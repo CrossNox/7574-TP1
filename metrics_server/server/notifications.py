@@ -39,6 +39,7 @@ class Notification:
         return self.next_eval <= datetime.now()
 
     def bump_eval(self):
+        """Bump the next evaluation time."""
         self.prev_eval = self.next_eval
         if not self.on:
             self.next_eval += timedelta(seconds=self.aggregation_window_secs)
@@ -54,6 +55,17 @@ def handle_notifications_messages(
     notifications_messages_queue: multiprocessing.Queue,
     monitoring_conns_queue: multiprocessing.Queue,
 ):
+    """Handle messages from triggered notifications.
+
+    Args:
+        notifications_log_path: Path where to log notifications to.
+        notifications_messages_queue: Queue where notification messages are placed.
+        monitoring_conns_queue: Queue where connections declaring intention to
+            monitor notification messages are placed.
+
+    Returns:
+        None
+    """
     monitor_clients: List[socket.socket] = []
     try:
         notifications_log_path.touch(exist_ok=True)
@@ -70,6 +82,8 @@ def handle_notifications_messages(
                         monitor_client.sendall(NotificationResponse(dt, msg).to_bytes())
                         _monitor_clients.append(monitor_client)
                     except BrokenPipeError:
+                        # Remove this from the internal list,
+                        # since it has most likely disconnected.
                         pass
                     finally:
                         monitor_clients = _monitor_clients
@@ -97,6 +111,18 @@ def watch_notifications(
     host: str,
     notifications_messages_queue: multiprocessing.Queue,
 ):
+    """Check for notifications triggering.
+
+    Args:
+        notifications_queue: queue where notifications are placed.
+        port: port of the server running.
+        host: host where the server is running.
+        notifications_messages_queue: queue where triggered notification messages
+            should be placed.
+
+    Returns:
+        None
+    """
     try:
         while True:
             notification = notifications_queue.get()

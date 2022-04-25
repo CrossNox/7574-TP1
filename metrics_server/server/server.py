@@ -44,8 +44,25 @@ logger = get_logger(__name__)
 
 
 def dispatch_conn(
-    connections_queue, metrics_conns_queue, queries_conns_queue, monitoring_conns_queue
+    connections_queue: multiprocessing.Queue,
+    metrics_conns_queue: multiprocessing.Queue,
+    queries_conns_queue: multiprocessing.Queue,
+    monitoring_conns_queue: multiprocessing.Queue,
 ):
+    """Dispatch connections as per their declared intentions.
+
+    Args:
+        connections_queue: queue where received connections are placed.
+        metrics_conns_queue: queue where connections declaring intention to send a
+            metric are to be placed.
+        queries_conns_queue: queue where connections declaring intention to make a
+            query are to be placed.
+        monitoring_conns_queue: queue where connections declaring intention to monitor
+            notifications are to be placed.
+
+    Returns:
+        None.
+    """
     try:
         while True:
             sock, addr = connections_queue.get()

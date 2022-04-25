@@ -16,6 +16,15 @@ def handle_metrics_conns(
     metrics_conns_queue: multiprocessing.Queue,
     metrics_queues: List[multiprocessing.Queue],
 ):
+    """Handle connections declaring intention to send metrics.
+
+    Args:
+        metrics_conns_queue: Queue where connections are placed.
+        metrics_queues: Queues where metrics values are placed.
+
+    Returns:
+        None
+    """
     try:
         while True:
             sock, addr = metrics_conns_queue.get()
@@ -67,6 +76,17 @@ def handle_metrics_conns(
 
 
 def write_metrics(data_path: pathlib.Path, metrics_queue: multiprocessing.Queue):
+    """Write metrics to partitioned files.
+
+    Files are partitioned by metric id and minute.
+
+    Args:
+        data_path: folder where to write partitioned files.
+        metrics_queue: queue where metric values are placed.
+
+    Returns:
+        None
+    """
     try:
         while True:
             received_metric = metrics_queue.get()

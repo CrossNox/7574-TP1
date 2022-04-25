@@ -3,7 +3,7 @@ import socket
 import struct
 from datetime import datetime
 from collections import defaultdict
-from typing import List, Optional, DefaultDict
+from typing import List, Type, Optional, DefaultDict
 
 import numpy as np
 
@@ -14,6 +14,7 @@ from metrics_server.protocol import (
     Metric,
     Status,
     MetricResponse,
+    ProtocolMessage,
     IntentionPackage,
     NotificationResponse,
     QueryPartialResponse,
@@ -23,6 +24,8 @@ logger = get_logger(__name__)
 
 
 class Client:
+    """Client to make requests to metrics server."""
+
     def __init__(self, host: str = "localhost", port: int = 5678):
         self.host = host
         self.port = port
@@ -39,13 +42,23 @@ class Client:
         self.socket.close()
 
     def send(self, buffer):
+        """Send a buffer to server."""
         self.socket.sendall(buffer)
 
-    def receive(self, cls):
+    def receive(self, cls: Type[ProtocolMessage]):
+        """Receive bytes from buffer.
+
+        Args:
+            cls: Class to receive bytes for.
+
+        Returns:
+            An object from the passed class.
+        """
         buffer = self.socket.recv(struct.calcsize(cls.fmt))
         return cls.from_bytes(buffer)
 
     def monitor_notifications(self):
+        """Monitor notifications from server."""
         try:
             logger.info("Sending intent")
             self.send(IntentionPackage(Intent.monitor).to_bytes())
@@ -71,6 +84,18 @@ class Client:
         start: Optional[datetime],
         end: Optional[datetime],
     ) -> List[int]:
+        """Send a query to the server.
+
+        Args:
+            metric: id of the metric to query about.
+            agg: aggregation to use.
+            agg_window: how many seconds the aggregation window lasts.
+            start: begin of the query period.
+            end: end of the query period.
+
+        Returns:
+            List with values aggregated
+        """
         logger.info("Sending intent")
         self.send(IntentionPackage(Intent.query).to_bytes())
 
@@ -93,6 +118,7 @@ class Client:
         return status
 
     def _send_metric(self, metric, value):
+        """Send a metric to the server."""
         logger.info("Sending message")
         self.send(Metric(metric, value).to_bytes())
 
@@ -107,6 +133,15 @@ class Client:
         return status
 
     def send_metric(self, metric: str, value: int) -> MetricResponse:
+        """Send a single metric to the server.
+
+        Args:
+            metric: id of the metric to send.
+            value: value associated to the metric observation.
+
+        Returns:
+            A response by the server.
+        """
         logger.info("Sending intent")
         self.send(IntentionPackage(Intent.metric).to_bytes())
 
@@ -115,6 +150,21 @@ class Client:
     def ramp_metric(
         self, strategy: Ramp, metric: str, during: int, initial: int, final: int
     ):
+        """Send several metric observations to the server.
+
+        Prints statistics of sent metric observations.
+
+        Args:
+            strategy: how to scale the amount of metrics per second between initial
+                and final values.
+            metric: id of the metric to send.
+            during: how long the ramp will last.
+            initial: initial amount of queries per second.
+            final: final amount of queries per second.
+
+        Returns:
+            Nothing.
+        """
         logger.info("Calculating messages rate")
         if strategy == Ramp.exponential:
             msgs_rate = np.logspace(
