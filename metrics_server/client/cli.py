@@ -80,7 +80,7 @@ def monitor(
         for dt, message in Client(host, port).monitor_notifications():
             # Makes no sense to use logging here
             # We want to print regardless of verbosity
-            print(f"{dt} - {message}")
+            typer.secho(f"{dt} - {message}")
     except ConnectionRefusedError:
         logger.error("Connection refused, check the host and port")
     except ValueError as e:

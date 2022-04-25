@@ -155,7 +155,7 @@ Pipfile*
 *.csv
 
 # Docker volumes
-data/*
+data*/*
 
 # Tex
 informe/*.log

@@ -23,6 +23,37 @@ docker-compose up --build
 El anterior comando crea un contenedor que ejecuta el servidor, dos contenedores que ejecutan un cliente que envía métricas y un contenedor que monitorea las notificaciones.
 
 ## Makefile
-Para probar distintos escenarios, se provee un archivo `Makefile` con los siguientes comandos:
+Para probar distintos escenarios, se provee un archivo `Makefile` con comandos para ejecutar los siguientes escenarios durante la demo:
 
-TODO
+Para cada escenario:
+```bash
+make docker-compose-scenario<nro>
+make docker-compose-scenario<nro>-down
+```
+
+### Escenario 1
+En este escenario:
+- Se envía una métrica `foo` durante 120 segundos, 2 veces por segundo
+- Se envía una métrica `bar` durante 120 segundos, 2 veces por segundo
+- Se monitorea la métrica `foo` por un promedio mayor a 10 en un período de 1 segundo
+	- Debería suceder alrededor del segundo 10, con los valores 10 y 11
+- Se monitorea la métrica `bar` por un valor máximo mayor a 10 en un período de 1 segundo
+	- Debería suceder alrededor del segundo 11, con el valor 11
+
+### Escenario 2
+En este escenario:
+- Se envía una métrica `foo` durante 20 segundos, 5 veces por segundo
+- Se hace una query para la métrica `foo` sin intervalo agregando cada 0 segundos, por máximo
+	- Debería devolver una lista con los valores de 1 a 100
+
+### Escenario 3
+En este escenario:
+- Se envía una métrica `foo` durante 20 segundos, 5 veces por segundo
+- Se hace una query para la métrica `bar` sin intervalo agregando cada 0 segundos, por máximo
+	- Debería registrar que no existe la métrica `bar`
+
+### Escenario 4
+En este escenario:
+- Se envía una métrica `foo` durante 60 segundos, con crecimiento exponencial de cantidad de métricas por segundo, arrancando en 1 y finalizando en 250
+- Se envía una métrica `bar` durante 60 segundos, con crecimiento exponencial de cantidad de métricas por segundo, arrancando en 1 y finalizando en 250
+- Se monitora la métrica `foo` agregando por count mayor a 100 en un período de 1 segundo

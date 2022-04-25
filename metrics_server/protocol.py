@@ -218,14 +218,14 @@ class NotificationResponse(ProtocolMessage):
             self.dt.timestamp(),
             self.message.encode(),
             self.stopping,
-            self.status,
+            self.status.value,
         )
 
     @classmethod
     def from_bytes(cls, buffer):
         (dt, msg, stopping, status) = struct.unpack(NotificationResponse.fmt, buffer)
         return NotificationResponse(
-            datetime.fromtimestamp(dt), msg.decode(), stopping, status
+            datetime.fromtimestamp(dt), msg.decode(), stopping, Status(status)
         )
 
     @classmethod

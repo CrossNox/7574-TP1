@@ -15,9 +15,8 @@ services:
       context: ..
       dockerfile: docker/server-Dockerfile
     volumes:
-      - ./notification_configs/notifications.ini:/app/notifications.ini:ro
-      - data:/data
-    command: --verbose
+      - ./notification_configs/notifications3.ini:/app/notifications.ini:ro
+      - data3:/data
 
   metric_foo:
     image: 7574-client:latest
@@ -31,9 +30,9 @@ services:
       dockerfile: docker/client-Dockerfile
     depends_on:
       - server
-    command: --verbose ramp constant foo 120 5 5
+    command: ramp constant foo 20 5 5
 
-  metric_bar:
+  query_foo:
     image: 7574-client:latest
     environment:
       - SERVER_HOST=server
@@ -44,22 +43,8 @@ services:
       context: ..
       dockerfile: docker/client-Dockerfile
     depends_on:
-      - server
-    command: --verbose ramp linear bar 120 1 25
-
-  monitor:
-    image: 7574-client:latest
-    environment:
-      - SERVER_HOST=server
-      - SERVER_NOTIFICATIONS_CFG=/app/settings.ini
-    networks:
-      - testing_net
-    build:
-      context: ..
-      dockerfile: docker/client-Dockerfile
-    depends_on:
-      - server
-    command: --verbose monitor
+      - metric_foo
+    entrypoint: bash -c "while ping -c1 metric_foo &>/dev/null; do sleep 1; done; poetry run metrics_client query bar max 0"
 
 networks:
   testing_net:
@@ -69,4 +54,4 @@ networks:
         - subnet: 172.25.125.0/24
 
 volumes:
-  data:
+  data3:

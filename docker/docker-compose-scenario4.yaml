@@ -15,9 +15,8 @@ services:
       context: ..
       dockerfile: docker/server-Dockerfile
     volumes:
-      - ./notification_configs/notifications.ini:/app/notifications.ini:ro
-      - data:/data
-    command: --verbose
+      - ./notification_configs/notifications4.ini:/app/notifications.ini:ro
+      - data4:/data
 
   metric_foo:
     image: 7574-client:latest
@@ -31,7 +30,7 @@ services:
       dockerfile: docker/client-Dockerfile
     depends_on:
       - server
-    command: --verbose ramp constant foo 120 5 5
+    command: ramp exponential foo 60 1 250
 
   metric_bar:
     image: 7574-client:latest
@@ -45,7 +44,7 @@ services:
       dockerfile: docker/client-Dockerfile
     depends_on:
       - server
-    command: --verbose ramp linear bar 120 1 25
+    command: ramp exponential bar 60 1 250
 
   monitor:
     image: 7574-client:latest
@@ -59,7 +58,7 @@ services:
       dockerfile: docker/client-Dockerfile
     depends_on:
       - server
-    command: --verbose monitor
+    command: monitor
 
 networks:
   testing_net:
@@ -69,4 +68,4 @@ networks:
         - subnet: 172.25.125.0/24
 
 volumes:
-  data:
+  data4:
