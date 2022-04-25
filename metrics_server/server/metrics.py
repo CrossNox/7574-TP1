@@ -1,10 +1,11 @@
 import zlib
+import queue
 import struct
 import pathlib
 import multiprocessing
 from typing import List
 
-from metrics_server.exceptions import BadMetric
+from metrics_server.exceptions import BadMetric, ServerFull
 from metrics_server.utils import get_logger, minute_partition
 from metrics_server.protocol import Metric, Status, MetricResponse, ReceivedMetric
 
@@ -32,13 +33,18 @@ def handle_metrics_conns(
                     sock.sendall(metric_response.to_bytes())
                     raise BadMetric()
 
+                # Send to queues for processing
+                try:
+                    shard = zlib.crc32(thing.identifier.encode()) % len(metrics_queues)
+                    metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
+                except queue.Full:
+                    metric_response = MetricResponse.server_unavailable()
+                    sock.sendall(metric_response.to_bytes())
+                    raise ServerFull()
+
                 # Reply an ack
                 metric_response = MetricResponse(Status.ok)
                 sock.sendall(metric_response.to_bytes())
-
-                # Send to queues for processing
-                shard = zlib.crc32(thing.identifier.encode()) % len(metrics_queues)
-                metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
 
     except ConnectionResetError:
         logger.error("Client closed connection before I could respond")
@@ -48,6 +54,8 @@ def handle_metrics_conns(
         logger.info("Got keyboard interrupt")
     except BadMetric:
         logger.error("Error receiving metric - bad format")
+    except ServerFull:
+        logger.error("Can't process metric at the moment")
     except:  # pylint: disable=bare-except
         logger.error("Got unknown exception", exc_info=True)
     finally:
