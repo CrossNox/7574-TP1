@@ -86,7 +86,7 @@ def agg_metrics(
             continue
 
         df = pd.read_csv(filename, names=["ts", "metric", "value"], engine="c")
-        df = df[df.notnull().all()]
+        df = df[df.notnull().all(axis=1)]
         df.ts = df.ts.apply(datetime.fromtimestamp)
 
         if start is not None:

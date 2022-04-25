@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "metrics_server"
-version = "0.9.2"
+version = "0.9.3"
 description = "TP1 para 7574 - Distribuidos I."
 authors = ["CrossNox <ijmermet@gmail.com>"]
 readme = "README.md"
