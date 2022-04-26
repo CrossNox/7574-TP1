@@ -133,6 +133,8 @@ class Server:
             multiprocessing.Queue()
         )
 
+        # TODO: wrap all these handlers into classes
+
         # Notification messages handler
         self.notifications_messages_handler = multiprocessing.Process(
             target=handle_notifications_messages,
