@@ -82,6 +82,6 @@ En este escenario:
 
 ### Escenario 4
 En este escenario:
-- Se envía una métrica `foo` durante 60 segundos, con crecimiento exponencial de cantidad de métricas por segundo, arrancando en 1 y finalizando en 250
-- Se envía una métrica `bar` durante 60 segundos, con crecimiento exponencial de cantidad de métricas por segundo, arrancando en 1 y finalizando en 250
+- Se envía una métrica `foo` durante 60 segundos, con crecimiento lineal de cantidad de métricas por segundo, arrancando en 1 y finalizando en 150
+- Se envía una métrica `bar` durante 60 segundos, con crecimiento lineal de cantidad de métricas por segundo, arrancando en 1 y finalizando en 150
 - Se monitora la métrica `foo` agregando por count mayor a 100 en un período de 1 segundo

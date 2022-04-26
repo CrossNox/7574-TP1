@@ -30,7 +30,7 @@ services:
       dockerfile: docker/client-Dockerfile
     depends_on:
       - server
-    command: ramp exponential foo 60 1 250
+    command: ramp linear foo 60 1 150
 
   metric_bar:
     image: 7574-client:latest
@@ -44,7 +44,7 @@ services:
       dockerfile: docker/client-Dockerfile
     depends_on:
       - server
-    command: ramp exponential bar 60 1 250
+    command: ramp linear bar 60 1 150
 
   monitor:
     image: 7574-client:latest
