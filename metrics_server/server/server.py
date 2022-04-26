@@ -201,6 +201,7 @@ class Server:
         try:
             self._server_socket.bind((self.host, self.port))
             self._server_socket.listen(self.listen_backlog)
+            logger.info("Successfully binded at %s", self.port)
         except socket.error:
             logger.error("Could not bind socket", exc_info=True)
             raise RuntimeError("Socket binding error")

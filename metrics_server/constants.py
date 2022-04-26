@@ -21,8 +21,9 @@ class Ramp(Enum):
     exponential = "exponential"
 
 
+DEFAULT_RETRIES: int = 5
 DEFAULT_PORT: int = 5678
-DEFAULT_HOST: str = "localhost"
+DEFAULT_HOST: str = "0.0.0.0"
 DEFAULT_WORKERS: int = 16
 DEFAULT_BACKLOG: int = 8
 DEFAULT_WRITERS: int = 16

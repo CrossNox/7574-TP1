@@ -18,6 +18,8 @@ En el root del proyecto se provee un archivo `sample_settings.ini` con los posib
 
 Puede copiar el archivo de prueba provisto, renombrarlo y modificar los valores según necesidad.
 
+Cada posible configuración se puede sobreescribir con variables de entorno con la nomenclatura`<Seccion>_<Clave>`. Por ejemplo `SERVER_HOST`.
+
 # Ejecución
 ## Server
 Revisar el mensaje de ayuda del servidor:

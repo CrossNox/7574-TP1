@@ -70,7 +70,7 @@ $ poetry run metrics_server --help
 Usage: metrics_server [OPTIONS]
 
 Options:
-  --host TEXT                     Host to bind server to  [default: localhost]
+  --host TEXT                     Host to bind server to  [default: 0.0.0.0]
   --port INTEGER                  Port to bind the server to  [default: 5678]
   --workers INTEGER               Amount of processes handling metrics
                                   [default: 16]
@@ -112,10 +112,14 @@ A continuación se muestra la ayuda de la CLI asociada al cliente provisto.
 	frame=lines,
 	framesep=2mm]{bash}
 $ poetry run metrics_client --help
-
 Usage: metrics_client [OPTIONS] COMMAND [ARGS]...
 
 Options:
+  --host TEXT                     Host address of the server  [default:
+                                  0.0.0.0]
+  --port INTEGER                  Port of the server  [default: 5678]
+  --retries INTEGER               Retries to connect to the server  [default:
+                                  5]
   -v, --verbose                   Level of verbosity. Can be passed more than
                                   once for more levels of logging.  [default:
                                   0]
@@ -132,6 +136,8 @@ Commands:
 
 Vemos que hay cuatro subcomandos disponibles: dos modos de envío de métricas, consultas y monitoreo de notificaciones.
 
+Para ver el mensaje de ayuda de alguno de los subcomandos, se puede hacer con \texttt{poetry run metrics\_client <subcomando> \--\--help}.
+
 \subsection{Configuración} \label{configuracion}
 En el root del proyecto se encuentra un archivo \texttt{sample\_settings.ini}, donde se ven los posible valores a configurar:
 
@@ -144,7 +150,7 @@ En el root del proyecto se encuentra un archivo \texttt{sample\_settings.ini}, d
 	frame=lines,
 	framesep=2mm]{ini}
 [server]
-host=localhost
+host=0.0.0.0
 port=5678
 workers=16
 backlog=8
@@ -157,6 +163,10 @@ notifications_cfg=/var/notifications.ini
 \end{minted}
 \caption{Archivo de configuración de ejemplo.}
 \end{figure}
+
+El proyecto, sin embargo, espera un archivo llamado \texttt{settings.ini}. Por motivos obvios de seguridad, este archivo es ignorado en el sistema de versionado.
+
+Puede copiar el archivo de prueba provisto, renombrarlo y modificar los valores según necesidad.
 
 Cada posible configuración se puede sobreescribir con variables de entorno con la nomenclatura \texttt{<Seccion>\_<Clave>}. Por ejemplo \texttt{SERVER\_HOST}.
 
@@ -228,7 +238,6 @@ Para poder resolver el primer escenario se puede replicar lo que se usa para esc
 
 Si la cantidad de queues de métricas/cantidad de procesos que escriben métricas a archivos cambiase, se deberían reshufflear los archivos de todas las métricas a la máquina correspondiente. Este proceso podría demorar levantar el server para poder recibir métricas y responder queries.
 
-
 \section{Protocolo de comunicación}
 La comunicación cliente-servidor utiliza un protocolo binario. La comunicación se inicia enviando un paquete \texttt{Intention}\cite{IntentionPackage} que indica que tipo de operación se desea ejecutar:
 \begin{itemize}
@@ -237,27 +246,46 @@ La comunicación cliente-servidor utiliza un protocolo binario. La comunicación
 	\item Monitorear notificaciones
 \end{itemize}
 
-Luego el protocolo de comunicación continúa de acuerdo a cada caso particular.
+Luego el protocolo de comunicación continúa de acuerdo a cada caso particular. Los tamaños de los paquetes corresponden al struct de \texttt{C} subyacente:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c|c|c}
+\textit{Paquete}     & \textit{String de formato} & \textit{Tamaño del paquete}  \\
+\hline
+IntentionPackage     & !i                         & 4                            \\
+Metric               & !28pL                      & 32                           \\
+Query                & !28p12pddd                 & 64                           \\
+QueryPartialResponse & !Hf?                       & 7                            \\
+ReceivedMetric       & !28pLf                     & 36                           \\
+NotificationResponse & !d128p?H                   & 139                          \\
+MetricResponse       & !H                         & 2
+\end{tabular}
+\end{table}
+
+Notar que se espera tamaño \textit{standard} sin alineación, con bytes en orden de red (big-endian).
+
+Para poder desarrollar un ecosistema de aplicaciones que puedan utilizar este protocolo, se debería desarrollar una guía que explique en profundidad que representa cada campo del string de formato de cada paquete.
 
 \subsection{Envío de métrica}
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/envio_metricas.png}
-\caption{Diagrama de secuencia - envío de métricas}
+\caption{Diagrama de secuencia \-- envío de métricas}
 \end{figure}
 
 \subsection{Consulta de métrica}
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/query.png}
-\caption{Diagrama de secuencia - envío de métricas}
+\caption{Diagrama de secuencia \-- envío de métricas}
 \end{figure}
 
 \subsection{Monitoreo de notificaciones}
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/notificaciones.png}
-\caption{Diagrama de secuencia - monitoreo de notificaciones}
+\caption{Diagrama de secuencia \-- monitoreo de notificaciones}
 \end{figure}
 
 \section{Resolución de concurrencia}

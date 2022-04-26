@@ -8,7 +8,14 @@ from typing import List, Type, Optional, DefaultDict
 import numpy as np
 
 from metrics_server.utils import get_logger
-from metrics_server.constants import Ramp, Intent, Aggregation
+from metrics_server.constants import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_RETRIES,
+    Ramp,
+    Intent,
+    Aggregation,
+)
 from metrics_server.protocol import (
     Query,
     Metric,
@@ -26,14 +33,30 @@ logger = get_logger(__name__)
 class Client:
     """Client to make requests to metrics server."""
 
-    def __init__(self, host: str = "localhost", port: int = 5678):
+    def __init__(
+        self,
+        host: str = DEFAULT_HOST,
+        port: int = DEFAULT_PORT,
+        retries: int = DEFAULT_RETRIES,
+    ):
         self.host = host
         self.port = port
         try:
             logger.info("Attempting to connect to %s:%s", self.host, self.port)
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.socket.connect((host, port))
+            while retries:
+                try:
+                    self.socket.connect((host, port))
+                    logger.info("Connected to server")
+                    break
+                except ConnectionRefusedError:
+                    retries -= 1
+                    logger.error(
+                        "Connection refused - retry - %s attempts left", retries
+                    )
+                    if retries == 0:
+                        raise
+                    time.sleep(5)
         except ConnectionRefusedError:
             logger.error("Connection refused")
             raise
