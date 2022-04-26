@@ -52,7 +52,113 @@ El proyecto fue desarrollado en \texttt{python}\cite{Python} y empaquetado con \
 En la carpeta \texttt{docker} se encuentran disponibles los \texttt{Dockerfile} asociados tanto al servidor como al cliente.
 
 \section{Instalación y ejecución}
-Referirse al archivo \texttt{README.md} provisto en el repositorio.
+Referirse al archivo \texttt{README.md} provisto en el repositorio para ver las instrucciones de instalación.
+
+\subsubsection{Ejecución del server}
+
+A continuación se muestra la ayuda de la CLI asociada al servidor.
+
+\begin{figure}[H]
+\begin{minted}[
+	mathescape,
+	linenos,
+    numbersep=5pt,
+	gobble=0,
+	frame=lines,
+	framesep=2mm]{bash}
+$ poetry run metrics_server --help
+Usage: metrics_server [OPTIONS]
+
+Options:
+  --host TEXT                     Host to bind server to  [default: localhost]
+  --port INTEGER                  Port to bind the server to  [default: 5678]
+  --workers INTEGER               Amount of processes handling metrics
+                                  [default: 16]
+  --backlog INTEGER               How many unaccepted connections the system
+                                  allows before refusing new ones  [default:
+                                  8]
+  --writers INTEGER               Amount of processes writing metrics to disk
+                                  [default: 16]
+  --queriers INTEGER              Amount of processes handling queries
+                                  [default: 4]
+  --notifiers INTEGER             Amount of processes reviewing active
+                                  notifications  [default: 4]
+  --data-path PATH                Path to save data to  [default: /tmp]
+  --notifications-log-path PATH   Path to write notification messages to
+                                  [default:
+                                  /tmp/metrics_server_notifications.log]
+  --notifications-cfg TEXT        Path to notifications configuration ini file
+                                  [default: /home/nox/repos/fiuba/7574-Distrib
+                                  uidosI/7574-TP1/notifications.ini]
+  -v, --verbose                   Level of verbosity. Can be passed more than
+                                  once for more levels of logging.  [default:
+                                  0]
+  --pretty                        Whether to pretty print the logs with colors
+\end{minted}
+\caption{Mensaje de ayuda de la CLI del servidor.}
+\end{figure}
+
+La configuración de la ejecución se hace a través de un archivo \texttt{.ini} en el root del proyecto o bien por variables de entorno. La sección \ref{configuracion} provee mayor detalle.
+
+\subsection{Cliente de ejemplo}
+A continuación se muestra la ayuda de la CLI asociada al cliente provisto.
+
+\begin{figure}[H]
+\begin{minted}[
+	mathescape,
+	linenos,
+    numbersep=5pt,
+	gobble=0,
+	frame=lines,
+	framesep=2mm]{bash}
+$ poetry run metrics_client --help
+
+Usage: metrics_client [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -v, --verbose                   Level of verbosity. Can be passed more than
+                                  once for more levels of logging.  [default:
+                                  0]
+  --pretty                        Whether to pretty print the logs with colors
+
+Commands:
+  monitor  Monitor triggered notifications.
+  query    Send a query to the server and print the result.
+  ramp     Send a burst of metrics to a server.
+  send     Send a single metric to a server.
+\end{minted}
+\caption{Mensaje de ayuda de la CLI del cliente.}
+\end{figure}
+
+Vemos que hay cuatro subcomandos disponibles: dos modos de envío de métricas, consultas y monitoreo de notificaciones.
+
+\subsection{Configuración} \label{configuracion}
+En el root del proyecto se encuentra un archivo \texttt{sample\_settings.ini}, donde se ven los posible valores a configurar:
+
+\begin{figure}[H]
+\begin{minted}[
+	mathescape,
+	linenos,
+    numbersep=5pt,
+	gobble=0,
+	frame=lines,
+	framesep=2mm]{ini}
+[server]
+host=localhost
+port=5678
+workers=16
+backlog=8
+writers=16
+queriers=4
+notifiers=4
+data_path=/tmp
+notifications_log_path=/tmp/metrics_server_notifications.log
+notifications_cfg=/var/notifications.ini
+\end{minted}
+\caption{Archivo de configuración de ejemplo.}
+\end{figure}
+
+Cada posible configuración se puede sobreescribir con variables de entorno con la nomenclatura \texttt{<Seccion>\_<Clave>}. Por ejemplo \texttt{SERVER\_HOST}.
 
 \section{Arquitectura general}
 \subsection{Diagrama de robustez} \label{robustez}

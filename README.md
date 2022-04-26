@@ -13,6 +13,32 @@ Teniendo `poetry` instalado, el siguiente comando creará un nuevo entorno para 
 poetry install --no-dev
 ```
 
+# Configuración
+En el root del proyecto se provee un archivo `sample_settings.ini` con los posibles valores de configuración. Sin embargo, el archivo esperado se llama `settings.ini`. Por motivos obvios de seguridad, este archivo es ignorado en el sistema de versionado con `.gitignore`.
+
+Puede copiar el archivo de prueba provisto, renombrarlo y modificar los valores según necesidad.
+
+# Ejecución
+## Server
+Revisar el mensaje de ayuda del servidor:
+
+```bash
+poetry run metrics_server --help
+```
+
+## Client
+Revisar el mensaje de ayuda del cliente:
+
+```bash
+poetry run metrics_client --help
+```
+
+Para ver el mensaje de ayuda de cada uno de los subcomandos:
+
+```bash
+poetry run metrics_client <command> --help
+```
+
 # Ejecución con Docker
 Desde la carpeta `docker`, ejecutar:
 

@@ -20,14 +20,19 @@ app = typer.Typer()
 
 @app.command()
 def ramp(
-    strategy: Ramp,
-    metric: str,
-    during: int,
-    initial: int,
-    final: int,
-    host: str = cfg.server.host(default=DEFAULT_HOST),
-    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
+    strategy: Ramp = typer.Argument(..., help="Ramp up strategy to use"),
+    metric: str = typer.Argument(..., help="Metric id to send"),
+    during: int = typer.Argument(..., help="Duration of the burst"),
+    initial: int = typer.Argument(..., help="Initial amount of RPS"),
+    final: int = typer.Argument(..., help="Final amount of RPS"),
+    host: str = typer.Option(
+        cfg.server.host(default=DEFAULT_HOST), help="Host address of the server"
+    ),
+    port: int = typer.Option(
+        cfg.server.port(default=DEFAULT_PORT, cast=int), help="Port of the server"
+    ),
 ):
+    """Send a burst of metrics to a server."""
     try:
         Client(host, port).ramp_metric(strategy, metric, during, initial, final)
     except ConnectionRefusedError:
@@ -38,11 +43,16 @@ def ramp(
 
 @app.command()
 def send(
-    metric: str,
-    value: int,
-    host: str = cfg.server.host(default=DEFAULT_HOST),
-    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
+    metric: str = typer.Argument(..., help="Metric id to send"),
+    value: int = typer.Argument(..., help="Value of the metric"),
+    host: str = typer.Option(
+        cfg.server.host(default=DEFAULT_HOST), help="Host address of the server"
+    ),
+    port: int = typer.Option(
+        cfg.server.port(default=DEFAULT_PORT, cast=int), help="Port of the server"
+    ),
 ):
+    """Send a single metric to a server."""
     try:
         Client(host, port).send_metric(metric, value)
     except ConnectionRefusedError:
@@ -53,14 +63,19 @@ def send(
 
 @app.command()
 def query(
-    metric: str,
-    agg: Aggregation,
-    agg_window: float,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    host: str = cfg.server.host(default=DEFAULT_HOST),
-    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
+    metric: str = typer.Argument(..., help="Metric id to send"),
+    agg: Aggregation = typer.Argument(..., help="Aggregation function to use"),
+    agg_window: float = typer.Argument(..., help="Duration of the aggregation window"),
+    start: Optional[datetime] = typer.Option(None, help="Start of the query period"),
+    end: Optional[datetime] = typer.Option(None, help="End of the query period"),
+    host: str = typer.Option(
+        cfg.server.host(default=DEFAULT_HOST), help="Host address of the server"
+    ),
+    port: int = typer.Option(
+        cfg.server.port(default=DEFAULT_PORT, cast=int), help="Port of the server"
+    ),
 ):
+    """Send a query to the server and print the result."""
     try:
         assert agg_window >= 0
         agg_array = Client(host, port).send_query(metric, agg, agg_window, start, end)
@@ -73,9 +88,14 @@ def query(
 
 @app.command()
 def monitor(
-    host: str = cfg.server.host(default=DEFAULT_HOST),
-    port: int = cfg.server.port(default=DEFAULT_PORT, cast=int),
+    host: str = typer.Option(
+        cfg.server.host(default=DEFAULT_HOST), help="Host address of the server"
+    ),
+    port: int = typer.Option(
+        cfg.server.port(default=DEFAULT_PORT, cast=int), help="Port of the server"
+    ),
 ):
+    """Monitor triggered notifications."""
     try:
         for dt, message in Client(host, port).monitor_notifications():
             # Makes no sense to use logging here
@@ -89,8 +109,16 @@ def monitor(
 
 @app.callback()
 def main(
-    verbose: int = typer.Option(DEFAULT_VERBOSE, "--verbose", "-v", count=True),
-    pretty: bool = typer.Option(DEFAULT_PRETTY, "--pretty"),
+    verbose: int = typer.Option(
+        DEFAULT_VERBOSE,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Level of verbosity. Can be passed more than once for more levels of logging.",
+    ),
+    pretty: bool = typer.Option(
+        DEFAULT_PRETTY, "--pretty", help="Whether to pretty print the logs with colors"
+    ),
 ):
     config_logging(verbose, pretty)
 

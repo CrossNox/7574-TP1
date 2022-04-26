@@ -199,7 +199,7 @@ class Server:
             raise RuntimeError("Socket error")
 
         try:
-            self._server_socket.bind(("", port))
+            self._server_socket.bind((self.host, self.port))
             self._server_socket.listen(self.listen_backlog)
         except socket.error:
             logger.error("Could not bind socket", exc_info=True)
