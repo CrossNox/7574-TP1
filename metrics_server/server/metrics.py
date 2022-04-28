@@ -6,7 +6,7 @@ import multiprocessing
 from typing import List
 
 from metrics_server.exceptions import BadMetric, ServerFull
-from metrics_server.utils import get_logger, minute_partition
+from metrics_server.utils import get_logger, timestamp_check, minute_partition
 from metrics_server.protocol import Metric, Status, MetricResponse, ReceivedMetric
 
 logger = get_logger(__name__)
@@ -97,7 +97,7 @@ def write_metrics(data_path: pathlib.Path, metrics_queue: multiprocessing.Queue)
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "a") as f:
                 f.write(
-                    f"{received_metric.timestamp},{received_metric.identifier},{received_metric.value}\n"
+                    f"{received_metric.timestamp},{received_metric.identifier},{received_metric.value},{timestamp_check(received_metric.timestamp)}\n"
                 )
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")

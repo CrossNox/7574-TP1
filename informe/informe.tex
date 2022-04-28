@@ -302,7 +302,16 @@ Para entender como se relacionan los procesos y las queues, referirse a \ref{rob
 \subsection{Concurrencia entre lectura y escritura de archivos}
 Cada archivo de una métrica $M_i$ es escrito solo por un proceso $W_j$, por tanto no hay concurrencia \texttt{WW} a resolver. La concurrencia \texttt{RW} puede darse en el caso que un proceso esté leyendo el archivo para resolver una query mientras otro sigue escribiendo métricas al mismo.
 
-Sin embargo, al leer, lo que puede pasar es que haya líneas incompletas. Estas lineas se ignoran. Por otro lado, se ignoran todas las lineas de momentos anteriores al momento donde se empieza a ejecutar la query. De este modo, dos queries ejecutadas en el mismo instante, reciben la misma respuesta, sin importar el momento de completado de procesamiento de las mismas.
+Sin embargo, al leer, lo que puede pasar es que haya líneas incompletas. Originalmente el CSV se escribia con los campos \texttt{timestamp}, \texttt{metric_id}, \texttt{value}. Podemos pensar varios escenarios:
+\begin{itemize}
+	\item El caso feliz: Tenemos todos los campos y el \texttt{\\n} que termina la línea
+	\item Un caso poco feliz, pero poco problemático: tenemos una coma, pero no el valor que sigue
+	\item Un caso sutilmente problematico: que el campo \texttt{value} esté truncado!
+\begin{itemize}
+
+El segundo caso se puede resolver sencillamente ignorando las lineas que no tengan todos los campos. El tercer caso no podemos resolverlo con el esquema de datos planteado. Por tanto se agrega una cuarta columna \texttt{check}, que es una función de \texttt{timestamp}. Para poder escribir rápidamente las líneas, necesitamos que sea una función rápida, un hash quizás sea demasiado lento. Por tanto se prefirió usar la función $\mod 10$. Luego al momento de leer, descartamos las lineas donde $\text{timestamp} \mod 10 \neq \text{check}$.
+
+Por otro lado, se ignoran todas las lineas de momentos anteriores al momento donde se empieza a ejecutar la query. De este modo, dos queries ejecutadas en el mismo instante, reciben la misma respuesta, sin importar el momento de completado de procesamiento de las mismas.
 
 \printbibliography
 

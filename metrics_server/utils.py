@@ -66,3 +66,8 @@ def get_logger(name: str):
 def minute_partition(ts: Union[float, int]) -> int:
     """Get the minute partition from a timestamp."""
     return int(ts // 60)
+
+
+def timestamp_check(ts: int) -> int:
+    """Provide a check from a timestamp."""
+    return ts % 10

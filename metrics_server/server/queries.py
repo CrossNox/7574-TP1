@@ -8,8 +8,8 @@ from typing import List, Optional
 import pandas as pd
 
 from metrics_server.constants import Aggregation
-from metrics_server.utils import get_logger, minute_partition
 from metrics_server.protocol import Query, Status, QueryPartialResponse
+from metrics_server.utils import get_logger, timestamp_check, minute_partition
 from metrics_server.exceptions import (
     BadQuery,
     MetricDoesNotExist,
@@ -122,8 +122,9 @@ def agg_metrics(
         if end is not None and int(filename.name) > minute_partition(end.timestamp()):
             continue
 
-        df = pd.read_csv(filename, names=["ts", "metric", "value"], engine="c")
+        df = pd.read_csv(filename, names=["ts", "metric", "value", "check"], engine="c")
         df = df[df.notnull().all(axis=1)]
+        df = df[df.ts.apply(timestamp_check) == df.check]
         df.ts = df.ts.apply(datetime.fromtimestamp)
 
         if start is not None:
