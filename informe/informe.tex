@@ -174,7 +174,7 @@ El proyecto, sin embargo, espera un archivo llamado \texttt{settings.ini}. Por m
 
 Puede copiar el archivo de prueba provisto, renombrarlo y modificar los valores según necesidad.
 
-Cada posible configuración se puede sobreescribir con variables de entorno con la nomenclatura \texttt{<Seccion>\_<Clave>}. Por ejemplo \texttt{SERVER\_HOST}.
+Cada posible configuración se puede sobreescribir con variables de entorno con la nomenclatura \texttt{<Sección>\_<Clave>}. Por ejemplo \texttt{SERVER\_HOST}.
 
 \section{Arquitectura general}
 \subsection{Diagrama de robustez} \label{robustez}
@@ -194,18 +194,18 @@ Es proceso se encarga tomar las conexiones entrantes en \texttt{Connections queu
 Estos procesos se encargan de tomar conexiones desde \texttt{Metrics conns queue} y recibir todas las métricas enviadas desde ese cliente. Cada métrica recibida se mete en una queue de entre \texttt{Metrics queues} según \eqref{crcindex}.
 
 \subsubsection{Metrics writers}
-Cada proceso de este tipo toma metricas de una queue en particular y se encarga de escribirlas a archivos, particionando por \texttt{metric\_id} y por \texttt{timestamp}.
+Cada proceso de este tipo toma métricas de una queue en particular y se encarga de escribirlas a archivos, particionando por \texttt{metric\_id} y por \texttt{timestamp}.
 
 \subsubsection{Queries handlers}
-Estos procesos se encargan de tomar una conexión desde \texttt{Queries conns queue}, recibir la query enviada desde la conexión, leer los archivos correspondientes a la metrica y período pedidos, y sobre ellos calcular las agregaciones requeridas. Luego envían este valor por la conexión establecida.
+Estos procesos se encargan de tomar una conexión desde \texttt{Queries conns queue}, recibir la query enviada desde la conexión, leer los archivos correspondientes a la métrica y período pedidos, y sobre ellos calcular las agregaciones requeridas. Luego envían este valor por la conexión establecida.
 
 \subsubsection{Notifications workers}
-Al levantar el servidor, se lee la configuración de notificaciones y cada elemento se carga en la queue \texttt{Notifications queue}. Estos procesos se encargan de tomar una notificacion desde la queue y revisar si es momento de ejecutarla, colocandola de nuevo en la queue si no lo fuera. Si lo fuera, se realiza la query correspondiente. Si la query arrojara un valor que supere el umbral definido, se coloca en la queue \texttt{Notifications messages queue} el mensaje correspondiente.
+Al levantar el servidor, se lee la configuración de notificaciones y cada elemento se carga en la queue \texttt{Notifications queue}. Estos procesos se encargan de tomar una notificación desde la queue y revisar si es momento de ejecutarla, colocándola de nuevo en la queue si no lo fuera. Si lo fuera, se realiza la query correspondiente. Si la query arrojara un valor que supere el umbral definido, se coloca en la queue \texttt{Notifications messages queue} el mensaje correspondiente.
 
 \subsubsection{Notifications messages handler}
 Este proceso se encarga de distribuir a donde corresponde los mensajes de notificaciones. Por un lado escribe a un archivo los mensajes.
 
-Por otro lado, toma conexiones desde \texttt{Notifications conns queue} y las agrega a una lista interna de conexiones. Cada nuevo mensaje de notificacion es enviado a estos clientes también.
+Por otro lado, toma conexiones desde \texttt{Notifications conns queue} y las agrega a una lista interna de conexiones. Cada nuevo mensaje de notificación es enviado a estos clientes también.
 
 \subsection{Diagrama de clases}
 \begin{figure}[H]
@@ -234,11 +234,11 @@ Asumamos que la cantidad de queues de métricas es constante. Sea $M_i$ el ident
 	j = \text{crc}(M_i) \mod \mid \text{Queues de métricas} \mid
 \end{equation}
 
-El proceso $W_j$ toma métricas de la queue $Q_j$ y las escribe a disco, particionadas por identificador de la metrica y por minuto del timestamp de la metrica recibida. Notar que $M_i$ \textbf{siempre} es escrita por $W_j$.
+El proceso $W_j$ toma métricas de la queue $Q_j$ y las escribe a disco, particionadas por identificador de la métrica y por minuto del timestamp de la métrica recibida. Notar que $M_i$ \textbf{siempre} es escrita por $W_j$.
 
 Un proceso $Y_j$ que resuelva consultas sobre una métrica $M_i$ debe o bien ser ejecutado en la misma máquina que el proceso $W_j$ o tener acceso al filesystem de $W_j$.
 
-El segundo caso no es trivial de resolver. Tecnologías como HDFS\cite{HDFS} involucran una gran cantidad de ingenería que, se entiende, supera los objetivos del presente trabajo práctico.
+El segundo caso no es trivial de resolver. Tecnologías como HDFS\cite{HDFS} involucran una gran cantidad de ingeniería que, se entiende, supera los objetivos del presente trabajo práctico.
 
 Para poder resolver el primer escenario se puede replicar lo que se usa para escribir las métricas: mandar cada query $Q_x$ sobre la métrica $M_i$ a una queue. El proceso $Y_j$ vive en la misma máquina que $W_j$, toma la query de la queue y la ejecuta, teniendo acceso a los archivos de $M_i$.
 
@@ -302,12 +302,12 @@ Para entender como se relacionan los procesos y las queues, referirse a \ref{rob
 \subsection{Concurrencia entre lectura y escritura de archivos}
 Cada archivo de una métrica $M_i$ es escrito solo por un proceso $W_j$, por tanto no hay concurrencia \texttt{WW} a resolver. La concurrencia \texttt{RW} puede darse en el caso que un proceso esté leyendo el archivo para resolver una query mientras otro sigue escribiendo métricas al mismo.
 
-Sin embargo, al leer, lo que puede pasar es que haya líneas incompletas. Originalmente el CSV se escribia con los campos \texttt{timestamp}, \texttt{metric_id}, \texttt{value}. Podemos pensar varios escenarios:
+Sin embargo, al leer, lo que puede pasar es que haya líneas incompletas. Originalmente el CSV se escribía con los campos \texttt{timestamp}, \texttt{metric\_id}, \texttt{value}. Podemos pensar varios escenarios:
 \begin{itemize}
 	\item El caso feliz: Tenemos todos los campos y el \texttt{\\n} que termina la línea
 	\item Un caso poco feliz, pero poco problemático: tenemos una coma, pero no el valor que sigue
-	\item Un caso sutilmente problematico: que el campo \texttt{value} esté truncado!
-\begin{itemize}
+	\item Un caso sutilmente problemático: que el campo \texttt{value} esté truncado!
+\end{itemize}
 
 El segundo caso se puede resolver sencillamente ignorando las lineas que no tengan todos los campos. El tercer caso no podemos resolverlo con el esquema de datos planteado. Por tanto se agrega una cuarta columna \texttt{check}, que es una función de \texttt{timestamp}. Para poder escribir rápidamente las líneas, necesitamos que sea una función rápida, un hash quizás sea demasiado lento. Por tanto se prefirió usar la función $\mod 10$. Luego al momento de leer, descartamos las lineas donde $\text{timestamp} \mod 10 \neq \text{check}$.
 
