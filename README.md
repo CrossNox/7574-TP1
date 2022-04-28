@@ -59,14 +59,16 @@ make docker-compose-scenario<nro>
 make docker-compose-scenario<nro>-down
 ```
 
+Recordar ver stats de cada container con `docker stats`.
+
 ### Escenario 1
 En este escenario:
 - Se envía una métrica `foo` durante 120 segundos, 2 veces por segundo
 - Se envía una métrica `bar` durante 120 segundos, 2 veces por segundo
-- Se monitorea la métrica `foo` por un promedio mayor a 10 en un período de 1 segundo
-	- Debería suceder alrededor del segundo 10, con los valores 10 y 11
-- Se monitorea la métrica `bar` por un valor máximo mayor a 10 en un período de 1 segundo
-	- Debería suceder alrededor del segundo 11, con el valor 11
+- Se monitorea la métrica `foo` por un promedio mayor a 10 en un período de 15 segundo
+	- Debería suceder alrededor del segundo 15
+- Se monitorea la métrica `bar` por un valor máximo mayor a 10 en un período de 15 segundo
+	- Debería suceder alrededor del segundo 15
 
 ### Escenario 2
 En este escenario:
