@@ -1,20 +1,20 @@
-import glob
-import struct
-import pathlib
-import multiprocessing
 from datetime import datetime
+import glob
+import multiprocessing
+import pathlib
+import struct
 from typing import List, Optional
 
 import pandas as pd
 
 from metrics_server.constants import Aggregation
-from metrics_server.protocol import Query, Status, QueryPartialResponse
-from metrics_server.utils import get_logger, timestamp_check, minute_partition
 from metrics_server.exceptions import (
     BadQuery,
     MetricDoesNotExist,
     EmptyAggregationArray,
 )
+from metrics_server.protocol import Query, Status, QueryPartialResponse
+from metrics_server.utils import get_logger, timestamp_check, minute_partition
 
 logger = get_logger(__name__)
 
@@ -111,8 +111,12 @@ def agg_metrics(
     """
     dfs = []
 
+    total_metric_files = 0
+
     for partition in glob.iglob(str(data_path / metric / "*")):
         filename = pathlib.Path(partition)
+
+        total_metric_files += 1
 
         if start is not None and int(filename.name) < minute_partition(
             start.timestamp()
@@ -135,8 +139,11 @@ def agg_metrics(
 
         dfs.append(df)
 
-    if len(dfs) == 0:
+    if total_metric_files == 0:
         raise MetricDoesNotExist()
+
+    if len(dfs) == 0:
+        raise EmptyAggregationArray()
 
     df = pd.concat(dfs)
 
