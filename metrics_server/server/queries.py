@@ -1,20 +1,20 @@
-from datetime import datetime
 import glob
-import multiprocessing
-import pathlib
 import struct
+import pathlib
+import multiprocessing
+from datetime import datetime
 from typing import List, Optional
 
 import pandas as pd
 
 from metrics_server.constants import Aggregation
+from metrics_server.protocol import Query, Status, QueryPartialResponse
+from metrics_server.utils import get_logger, timestamp_check, minute_partition
 from metrics_server.exceptions import (
     BadQuery,
     MetricDoesNotExist,
     EmptyAggregationArray,
 )
-from metrics_server.protocol import Query, Status, QueryPartialResponse
-from metrics_server.utils import get_logger, timestamp_check, minute_partition
 
 logger = get_logger(__name__)
 

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2022-04-28
+### Changed
+- Use doubles for timestamps
+
+### Fixed
+- Bug where due to rounding errors some metrics were not considered for notifications
+
 ## [1.0.2] - 2022-04-28
 ### Fixed
 - Fixed query reply when metric does not exist vs no data is available for range

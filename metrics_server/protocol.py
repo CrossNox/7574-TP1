@@ -176,13 +176,13 @@ class QueryPartialResponse(ProtocolMessage):
 class ReceivedMetric(ProtocolMessage):
     """Metric received by the server."""
 
-    fmt = "!28pLf"
+    fmt = "!28pdf"
 
-    def __init__(self, identifier: str, value: int, ts: Optional[int] = None):
+    def __init__(self, identifier: str, value: int, ts: Optional[float] = None):
         self.identifier = identifier
         self.value = value
         if ts is None:
-            self.timestamp = int(time.time())
+            self.timestamp = time.time()
         else:
             self.timestamp = ts
 

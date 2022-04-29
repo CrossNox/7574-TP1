@@ -68,6 +68,6 @@ def minute_partition(ts: Union[float, int]) -> int:
     return int(ts // 60)
 
 
-def timestamp_check(ts: int) -> int:
+def timestamp_check(ts: float) -> int:
     """Provide a check from a timestamp."""
-    return ts % 10
+    return int(ts) % 10
