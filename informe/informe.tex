@@ -304,7 +304,7 @@ Cada archivo de una métrica $M_i$ es escrito solo por un proceso $W_j$, por tan
 
 Sin embargo, al leer, lo que puede pasar es que haya líneas incompletas. Originalmente el CSV se escribía con los campos \texttt{timestamp}, \texttt{metric\_id}, \texttt{value}. Podemos pensar varios escenarios:
 \begin{itemize}
-	\item El caso feliz: Tenemos todos los campos y el \texttt{\\n} que termina la línea
+	\item El caso feliz: Tenemos todos los campos y el \texttt{\slash n} que termina la línea
 	\item Un caso poco feliz, pero poco problemático: tenemos una coma, pero no el valor que sigue
 	\item Un caso sutilmente problemático: que el campo \texttt{value} esté truncado!
 \end{itemize}
