@@ -1,14 +1,30 @@
-import logging
-import multiprocessing
-import pathlib
 import queue
 import signal
 import socket
 import struct
+import logging
+import pathlib
+import multiprocessing
 from typing import List
 
 import youconfigme as ycm
 
+from metrics_server.utils import coalesce, get_logger
+from metrics_server.server.queries import handle_queries
+from metrics_server.exceptions import InvalidNotificationSetting
+from metrics_server.server.metrics import write_metrics, handle_metrics_conns
+from metrics_server.server.notifications import (
+    Notification,
+    watch_notifications,
+    handle_notifications_messages,
+)
+from metrics_server.protocol import (
+    MetricResponse,
+    ProtocolMessage,
+    IntentionPackage,
+    NotificationResponse,
+    QueryPartialResponse,
+)
 from metrics_server.constants import (
     DEFAULT_HOST,
     DEFAULT_PORT,
@@ -23,22 +39,6 @@ from metrics_server.constants import (
     Intent,
     Aggregation,
 )
-from metrics_server.exceptions import InvalidNotificationSetting
-from metrics_server.protocol import (
-    MetricResponse,
-    ProtocolMessage,
-    IntentionPackage,
-    NotificationResponse,
-    QueryPartialResponse,
-)
-from metrics_server.server.metrics import write_metrics, handle_metrics_conns
-from metrics_server.server.notifications import (
-    Notification,
-    watch_notifications,
-    handle_notifications_messages,
-)
-from metrics_server.server.queries import handle_queries
-from metrics_server.utils import coalesce, get_logger
 
 logger = get_logger(__name__)
 

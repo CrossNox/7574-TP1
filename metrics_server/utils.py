@@ -63,7 +63,7 @@ def get_logger(name: str):
     return logging.getLogger(name)
 
 
-logger = get_logger(__name__)
+utils_logger = get_logger(__name__)
 
 
 def minute_partition(ts: Union[float, int]) -> int:
@@ -96,7 +96,7 @@ def coalesce(f: Callable) -> Callable:
         try:
             return f(*args, **kwargs)
         except:  # pylint: disable=bare-except  # noqa: E722
-            logger.error(f"error calling {f.__name__}", exc_info=True)
+            utils_logger.error(f"error calling {f.__name__}", exc_info=True)
             return None
 
     return _inner

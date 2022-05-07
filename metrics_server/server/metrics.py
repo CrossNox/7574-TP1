@@ -5,7 +5,6 @@ import pathlib
 import multiprocessing
 from typing import List
 
-from metrics_server.exceptions import BadMetric, ServerFull
 from metrics_server.utils import get_logger, timestamp_check, minute_partition
 from metrics_server.protocol import Metric, Status, MetricResponse, ReceivedMetric
 
@@ -28,43 +27,51 @@ def handle_metrics_conns(
     try:
         while True:
             sock, addr = metrics_conns_queue.get()
-            while True:
-                # Receive metric
-                buffer = sock.recv(struct.calcsize(Metric.fmt))
-                if buffer == b"":
-                    break
+            try:
+                while True:
+                    # Receive metric
+                    buffer = sock.recv(struct.calcsize(Metric.fmt))
 
-                try:
-                    thing = Metric.from_bytes(buffer)
-                    logger.info("received: %s from %s", thing, addr)
-                except:
-                    metric_response = MetricResponse.bad_format()
+                    # Nothing more to receive
+                    if buffer == b"":
+                        break
+
+                    try:
+                        thing = Metric.from_bytes(buffer)
+                        logger.info("received: %s from %s", thing, addr)
+                    except:  # pylint: disable=bare-except
+                        metric_response = MetricResponse.bad_format()
+                        sock.sendall(metric_response.to_bytes())
+                        logger.error("Got a bad metric, dropping the connection")
+                        break
+
+                    # Send to queues for processing
+                    try:
+                        shard = zlib.crc32(thing.identifier.encode()) % len(
+                            metrics_queues
+                        )
+                        metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
+                    except queue.Full:
+                        metric_response = MetricResponse.server_unavailable()
+                        sock.sendall(metric_response.to_bytes())
+                        logger.error(
+                            "Server is unavailable to handle metrics: queue is full."
+                        )
+                        # It's up to the client whether to stop, keep trying or retry.
+                        continue
+
+                    # Reply an ack
+                    metric_response = MetricResponse(Status.ok)
                     sock.sendall(metric_response.to_bytes())
-                    raise BadMetric()
 
-                # Send to queues for processing
-                try:
-                    shard = zlib.crc32(thing.identifier.encode()) % len(metrics_queues)
-                    metrics_queues[shard].put(ReceivedMetric.from_metric(thing))
-                except queue.Full:
-                    metric_response = MetricResponse.server_unavailable()
-                    sock.sendall(metric_response.to_bytes())
-                    raise ServerFull()
+                sock.close()
 
-                # Reply an ack
-                metric_response = MetricResponse(Status.ok)
-                sock.sendall(metric_response.to_bytes())
-
-    except ConnectionResetError:
-        logger.error("Client closed connection before I could respond")
-    except OSError:
-        logger.error("Error while reading socket", exc_info=True)
+            except ConnectionResetError:
+                logger.error("Client closed connection before I could respond")
+            except OSError:
+                logger.error("Error while reading socket", exc_info=True)
     except KeyboardInterrupt:
         logger.info("Got keyboard interrupt")
-    except BadMetric:
-        logger.error("Error receiving metric - bad format")
-    except ServerFull:
-        logger.error("Can't process metric at the moment")
     except:  # pylint: disable=bare-except
         logger.error("Got unknown exception", exc_info=True)
     finally:
