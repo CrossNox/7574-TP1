@@ -32,6 +32,30 @@ class ProtocolMessage(abc.ABC):
         raise NotImplementedError()
 
 
+class ProtocolResponseMessage(ProtocolMessage, abc.ABC):
+    """Abstract class of response classes to be sent over binary protocol."""
+
+    msgs = {
+        Status.ok: "Ok!",
+        Status.server_error: "Server error",
+        Status.server_unavailable: "Server unavailable",
+        Status.empty: "Metric is empty",
+        Status.does_not_exist: "Metric does not exist",
+        Status.bad_format: "Bad format",
+    }
+
+    def __init__(self, status):
+        self.status = status
+
+    @property
+    def error(self) -> bool:
+        return self.status != Status.ok
+
+    @property
+    def msg(self) -> str:
+        return self.msgs[self.status]
+
+
 class IntentionPackage(ProtocolMessage):
     """Declaration of intention."""
 
@@ -116,21 +140,13 @@ class Query(ProtocolMessage):
         return f"query {self.metric} aggregated by {self.agg} from {self.start} to {self.end} on a window of size {self.agg_window}"
 
 
-class QueryPartialResponse(ProtocolMessage):
+class QueryPartialResponse(ProtocolResponseMessage):
     """Partial response sent to answer a query."""
 
     fmt = "!Hf?"
-    msgs = {
-        Status.ok: "Ok!",
-        Status.server_error: "Server error",
-        Status.server_unavailable: "Server unavailable",
-        Status.empty: "Metric is empty",
-        Status.does_not_exist: "Metric does not exist",
-        Status.bad_format: "Bad format",
-    }
 
     def __init__(self, status: Status, aggvalue: float, last: bool):
-        self.status = status
+        super().__init__(status)
         self.aggvalue = aggvalue
         self.last = last
 
@@ -149,14 +165,6 @@ class QueryPartialResponse(ProtocolMessage):
     @classmethod
     def server_unavailable(cls):
         return QueryPartialResponse(Status.server_unavailable, 0, True)
-
-    @property
-    def msg(self) -> str:
-        return QueryPartialResponse.msgs[self.status]
-
-    @property
-    def error(self) -> bool:
-        return self.status != Status.ok
 
     @property
     def is_empty(self):
@@ -204,27 +212,18 @@ class ReceivedMetric(ProtocolMessage):
         return ReceivedMetric(metric.identifier, metric.value)
 
 
-class NotificationResponse(ProtocolMessage):
+class NotificationResponse(ProtocolResponseMessage):
     """Notification data to send to monitoring clients."""
 
     fmt = "!d128p?H"
 
-    msgs = {
-        Status.ok: "Ok!",
-        Status.server_error: "Server error",
-        Status.server_unavailable: "Server unavailable",
-        Status.empty: "Empty response",
-        Status.does_not_exist: "Metric does not exist",
-        Status.bad_format: "Bad format",
-    }
-
     def __init__(
         self, dt: datetime, msg: str, stopping: bool = False, status: Status = Status.ok
     ):
+        super().__init__(status)
         self.dt = dt
         self.message = msg
         self.stopping = stopping
-        self.status = status
 
     def to_bytes(self):
         return struct.pack(
@@ -246,39 +245,11 @@ class NotificationResponse(ProtocolMessage):
     def server_unavailable(cls):
         return NotificationResponse(datetime.now(), "", Status.server_unavailable)
 
-    @property
-    def msg(self) -> str:
-        return NotificationResponse.msgs[self.status]
 
-    @property
-    def error(self) -> bool:
-        return self.status != Status.ok
-
-
-class MetricResponse(ProtocolMessage):
+class MetricResponse(ProtocolResponseMessage):
     """Response to a received metric."""
 
     fmt = "!H"
-    # TODO: abstract into abstract class
-    msgs = {
-        Status.ok: "Ok!",
-        Status.server_error: "Server error",
-        Status.server_unavailable: "Server unavailable",
-        Status.empty: "Empty response",
-        Status.does_not_exist: "Metric does not exist",
-        Status.bad_format: "Bad format",
-    }
-
-    def __init__(self, status: Status):
-        self.status = status
-
-    @property
-    def msg(self) -> str:
-        return MetricResponse.msgs[self.status]
-
-    @property
-    def error(self) -> bool:
-        return self.status != Status.ok
 
     @classmethod
     def bad_format(cls):
