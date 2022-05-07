@@ -1,7 +1,7 @@
 """Utils file."""
 
 import logging
-from typing import Union
+from typing import Union, Callable
 
 import typer
 
@@ -63,6 +63,9 @@ def get_logger(name: str):
     return logging.getLogger(name)
 
 
+logger = get_logger(__name__)
+
+
 def minute_partition(ts: Union[float, int]) -> int:
     """Get the minute partition from a timestamp."""
     return int(ts // 60)
@@ -71,3 +74,29 @@ def minute_partition(ts: Union[float, int]) -> int:
 def timestamp_check(ts: float) -> int:
     """Provide a check from a timestamp."""
     return int(ts) % 10
+
+
+def coalesce(f: Callable) -> Callable:
+    """Wrap a function to return None on raised exceptions.
+
+    This function makes functions that might raise exception safe for `map`.
+    If an exception is raised, None is returned instead.
+
+    Parameters
+    ----------
+        f: Callable to wrap
+
+    Returns
+    -------
+        Wrapped callable
+
+    """
+
+    def _inner(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except:  # pylint: disable=bare-except  # noqa: E722
+            logger.error(f"error calling {f.__name__}", exc_info=True)
+            return None
+
+    return _inner

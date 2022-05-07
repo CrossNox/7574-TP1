@@ -1,30 +1,14 @@
+import logging
+import multiprocessing
+import pathlib
 import queue
 import signal
 import socket
 import struct
-import logging
-import pathlib
-import multiprocessing
 from typing import List
 
 import youconfigme as ycm
 
-from metrics_server.utils import get_logger
-from metrics_server.server.queries import handle_queries
-from metrics_server.exceptions import InvalidNotificationSetting
-from metrics_server.server.metrics import write_metrics, handle_metrics_conns
-from metrics_server.server.notifications import (
-    Notification,
-    watch_notifications,
-    handle_notifications_messages,
-)
-from metrics_server.protocol import (
-    MetricResponse,
-    ProtocolMessage,
-    IntentionPackage,
-    NotificationResponse,
-    QueryPartialResponse,
-)
 from metrics_server.constants import (
     DEFAULT_HOST,
     DEFAULT_PORT,
@@ -39,6 +23,22 @@ from metrics_server.constants import (
     Intent,
     Aggregation,
 )
+from metrics_server.exceptions import InvalidNotificationSetting
+from metrics_server.protocol import (
+    MetricResponse,
+    ProtocolMessage,
+    IntentionPackage,
+    NotificationResponse,
+    QueryPartialResponse,
+)
+from metrics_server.server.metrics import write_metrics, handle_metrics_conns
+from metrics_server.server.notifications import (
+    Notification,
+    watch_notifications,
+    handle_notifications_messages,
+)
+from metrics_server.server.queries import handle_queries
+from metrics_server.utils import coalesce, get_logger
 
 logger = get_logger(__name__)
 
@@ -211,25 +211,30 @@ class Server:
         self._signaled_termination = False
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
-    def _handle_sigterm(self, *_args):
-        logger.debug("Got SIGTERM, exiting gracefully")
-        logger.debug("Force stopping all children threads")
-        self.connections_queue.close()
-        self.metrics_conns_queue.close()
-        self.queries_conns_queue.close()
+    def close(self):
+        """Close all the server resources."""
+        coalesce(self.connections_queue.close)()
+        coalesce(self.metrics_conns_queue.close)()
+        coalesce(self.queries_conns_queue.close)()
         for q in self.metrics_queues:
-            q.close()
+            coalesce(q.close)()
 
-        self.conn_dispatcher.join()
+        coalesce(self.conn_dispatcher.join)()
         for writer in self.writers:
-            writer.join()
+            coalesce(writer.join)()
         for runner in self.metrics_getters:
-            runner.join()
+            coalesce(runner.join)()
         for calculator in self.queries_calculators:
-            calculator.join()
+            coalesce(calculator.join)()
 
         self._signaled_termination = True
-        self._server_socket.close()
+        coalesce(self._server_socket.close)()
+
+    def _handle_sigterm(self, *_args):
+        """SIGTERM handler to gracefully exit."""
+        logger.debug("Got SIGTERM, exiting gracefully")
+        logger.debug("Force stopping all children threads")
+        self.close()
 
     def run(self):
         """
@@ -296,30 +301,12 @@ class Server:
                         response = NotificationResponse.server_unavailable()
                     client_sock.sendall(response.to_bytes())
 
-        except queue.Full:
-            # TODO: send error
-            pass
         except KeyboardInterrupt:
             logger.info("Shutting everything down - keyboard interrupt")
         except InvalidNotificationSetting:
             pass
         finally:
-            self.connections_queue.close()
-            self.metrics_conns_queue.close()
-            self.queries_conns_queue.close()
-            for q in self.metrics_queues:
-                q.close()
-
-            self.conn_dispatcher.join()
-            for writer in self.writers:
-                writer.join()
-            for runner in self.metrics_getters:
-                runner.join()
-            for calculator in self.queries_calculators:
-                calculator.join()
-
-            self._signaled_termination = True
-            self._server_socket.close()
+            self.close()
 
     def _accept_new_connection(self):
         """Accept new connections
